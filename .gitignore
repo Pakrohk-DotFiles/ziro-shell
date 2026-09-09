@@ -13,3 +13,7 @@
 
 # Runtime state
 .last_update_check
+.update_available
+
+# Python
+__pycache__/

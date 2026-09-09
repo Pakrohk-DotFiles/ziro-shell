@@ -1,164 +1,178 @@
-# Enhanced ZSH Configuration
+# Ziro
 
-> A powerful, modular, and performance-optimized Zsh configuration designed for developers and power users.
+> Zero setup. Just a better shell.
 
-This project provides a comprehensive Zsh setup that balances rich features with a fast and responsive shell experience. It is built to be easily customizable and works seamlessly across both desktop and server environments. The configuration is kept clean and organized by sourcing modular files from a central directory (`~/.zsh_config`), ensuring your home directory remains uncluttered.
+Ziro is a complete shell environment for developers and power users. It installs Zsh, Starship, syntax highlighting, autosuggestions, completions, and a curated set of aliases and functions. Everything lives in `~/.ziro` and updates with a single command.
 
-## ✨ Core Features
+## What it installs
 
-- **Fast & Responsive:** Utilizes `zsh-snap` (znap) for efficient plugin management and instant prompt loading.
-- **Powerful Prompt:** A feature-rich and informative prompt powered by [Starship](https://starship.rs/).
-- **Intelligent Completions:** Advanced command completion system with auto-suggestions and syntax highlighting.
-- **Efficient Workflow:** A curated collection of aliases, functions, and plugins to streamline common tasks.
-- **Multi-OS & Cross-Platform:** Designed to run flawlessly on **Arch Linux, Debian/Ubuntu, Fedora, Alpine, openSUSE, and macOS** (latest version).
-- **Interactive Multi-OS Package Manager:** Includes a powerful `fzf`-based package manager (`pf` command) compatible with all major package managers (`pacman/paru`, `brew`, `apt`, `dnf`, `apk`, and `zypper`).
-- **Clean & Organized:** A modular structure that is easy to manage and customize.
+- Zsh with fast startup
+- [Starship](https://starship.rs/) prompt (auto-installed)
+- [zsh-snap](https://github.com/marlonrichert/zsh-snap) plugin manager
+- `fast-syntax-highlighting`, `zsh-autosuggestions`, `zsh-completions`
+- `pf` - interactive `fzf` package manager (supports pacman, brew, apt, dnf, apk, zypper)
+- Aliases: `mkcd`, `cdf`, `up`, `extract`, `softar`, `cheat`, `refonts`, `rebuild_system` (Arch), `reflectmirrors` (Arch)
+- `z` for directory jumping, `wd` for bookmarks, `alias-tips`
+- SSH agent management (desktop only)
+- Cross-platform: Arch Linux, Debian/Ubuntu, Fedora, Alpine, openSUSE, macOS, Windows (MSYS2)
 
-## 🚀 Installation
+## Supported systems
 
-The easiest way to install this configuration is using the provided automated installer.
+| Platform | Package manager | Notes |
+|---|---|---|
+| Arch Linux | pacman / paru | AUR helper auto-installed in Desktop mode |
+| Debian / Ubuntu | apt | |
+| Fedora | dnf | |
+| Alpine | apk | |
+| openSUSE | zypper | |
+| macOS | brew | Homebrew auto-installed if missing |
+| Windows | MSYS2 | Requires MSYS2 or WSL |
 
-### Quick Install (Recommended)
+## Installation
 
-Run the following command in your terminal:
+### Linux / macOS
 
 ```bash
-# For a standard interactive installation
 curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/zsh_config/refs/heads/main/install.sh | bash
-
-# Non-interactive installation (choose your mode)
-curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/zsh_config/refs/heads/main/install.sh | bash -s -- --server
-curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/zsh_config/refs/heads/main/install.sh | bash -s -- --desktop
 ```
 
-### 🪟 Windows Installation (WSL & MSYS2 / Native)
+With options:
 
-If you are on Windows, you can use our dedicated PowerShell installer supporting both **WSL (Windows Subsystem for Linux)** and **MSYS2 (Native Windows)**.
+```bash
+# Server mode (minimal)
+curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/zsh_config/refs/heads/main/install.sh | bash -s -- --server
 
-Run the following command in **PowerShell (as Administrator)**:
+# Desktop mode (full features)
+curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/zsh_config/refs/heads/main/install.sh | bash -s -- --desktop
+
+# Non-interactive
+curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/zsh_config/refs/heads/main/install.sh | bash -s -- --non-interactive --skip-deps
+```
+
+### Windows (PowerShell)
 
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/Pakrohk-DotFiles/zsh_config/refs/heads/main/install.ps1'))
+Set-ExecutionPolicy Bypass -Scope Process -Force
+iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/Pakrohk-DotFiles/zsh_config/refs/heads/main/install.ps1'))
 ```
 
-This installer will guide you through:
-1. **WSL (Option 1):** Installs the configuration inside your selected WSL distribution.
-2. **MSYS2 (Option 2):** Detects existing MSYS2 installation or automatically installs MSYS2 silently, then configures Zsh as the default shell and sets up all configurations.
+The PowerShell launcher finds Python and delegates to the same engine. Use WSL for the full experience; native Windows supports `ziro doctor` but `install` requires a Unix environment.
 
-The installer will:
-1. Detect your Operating System.
-2. Ask you to choose between **Desktop/Personal** or **Server** mode.
-   - **Root User:** If running as root, Server mode is enforced automatically.
-3. Automatically install necessary dependencies.
-   - **Server Mode:** Only essential tools (`zsh`, `git`, `curl`) are installed.
-4. Set up the configuration and symbolic links.
+### From a local clone
 
-### Security on Servers
+```bash
+git clone https://github.com/Pakrohk-DotFiles/zsh_config.git ~/.ziro
+bash ~/.ziro/install.sh
+```
 
-This configuration is designed with security in mind for server environments:
-- **No SSH Agent:** Automatic `ssh-agent` management and key loading are disabled on servers to prevent socket exposure.
-- **Minimal Plugins:** Only essential plugins like syntax highlighting and autosuggestions are loaded.
-- **Minimal Dependencies:** GUI-related tools and AUR helpers are not installed or configured.
+## Updating
 
-### Manual Installation
+```bash
+zsh_update
+```
 
-This configuration supports multiple Operating Systems. You can install core and optional dependencies manually using your favorite package manager.
+This pulls the latest changes from GitHub, recompiles plugins, and preserves your local `.zshrc.local` and Starship configuration.
 
-#### Core Requirements
-These packages are essential for the basic functionality of the shell configuration.
+## Checking health
 
-- **Arch Linux:** `sudo pacman -S zsh git curl fzf`
-- **macOS:** `brew install zsh git curl fzf`
-- **Debian/Ubuntu:** `sudo apt install zsh git curl fzf`
-- **Fedora:** `sudo dnf install zsh git curl fzf`
-- **Alpine:** `sudo apk add zsh git curl fzf`
-- **openSUSE:** `sudo zypper install zsh git curl fzf`
+```bash
+ziro doctor
+```
 
-#### Optional (for Full Alias, Function, & Extra Support)
-These packages enable additional features, extracting functions, and utilities:
+Reports the status of zsh, git, python3, fzf, starship, znap, plugins, symlink, default shell, remote origin, `.zshrc.local`, and `starship.toml`.
 
-- **Arch Linux:** `sudo pacman -S base-devel reflector p7zip unzip python-virtualenvwrapper` (Plus AUR helper `paru`)
-- **macOS:** `brew install p7zip unzip`
-- **Debian/Ubuntu:** `sudo apt install p7zip-full unzip`
-- **Fedora:** `sudo dnf install p7zip unzip`
-- **Alpine:** `sudo apk add p7zip unzip`
-- **openSUSE:** `sudo zypper install p7zip unzip`
+## Python CLI
 
-### Setup Steps
+The installer, updater, and doctor are powered by a Python 3 engine in `ziro/`. All three entry points (`install.sh`, `install.ps1`, `zsh_update`) delegate to it.
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/Pakrohk-DotFiles/zsh_config.git ~/.zsh_config
-    ```
+```bash
+ziro install          # install or repair
+ziro install --dry-run
+ziro update           # update Ziro
+ziro doctor           # check health
+ziro --version        # show version
+```
 
-2.  **Create the symbolic link:**
-    ```bash
-    ln -sf ~/.zsh_config/.zshrc ~/.zshrc
-    ```
+Requires Python 3.8 or later. Uses only the standard library (no pip dependencies).
 
-3.  **Set Zsh as your default shell:**
-    ```bash
-    chsh -s $(which zsh)
-    ```
+## What the installer does
 
-Now, restart your terminal. The first time you launch Zsh, `znap` and `starship` will be automatically installed.
+1. Detects your OS, distro, and package manager
+2. Installs system packages (zsh, git, curl, fzf, starship, and optionally rustup, go, node)
+3. Clones or pulls the Ziro repository into `~/.ziro`
+4. Migrates `~/.zsh_config` to `~/.ziro` if found (legacy support)
+5. Backs up existing `.zshrc`, `.zimrc`, `.zpreztorc`, `.zprofile`, `.zshenv` and framework directories
+6. Symlinks `~/.zshrc` to `~/.ziro/.zshrc`
+7. Creates `.zshrc.local` with sensible defaults (preserves existing)
+8. Optionally changes the default shell to Zsh
+9. Compiles Zsh files for faster startup
+10. Verifies the installation loads without errors
 
-## 🔧 Configuration Deep Dive
+## Security
 
-The configuration is split into several files, each with a specific purpose. All files are located in `~/.zsh_config`.
+Server mode disables SSH agent management, installs only essential plugins, and skips GUI-related tools. The installer uses subprocess argument arrays throughout (no shell injection vectors). The only remote execution is the official Homebrew installer on macOS (documented and unavoidable for bootstrap).
 
--   `.zshrc`: The main entry point. It handles `znap` bootstrapping, sets core Zsh options, and sources all other configuration files. This is the **only** file that needs to be symlinked to your home directory.
--   `.prompt.local`: Manages the Starship prompt. It ensures Starship is installed and generates a default `starship.toml` configuration if one doesn't exist.
--   `.zsh_aliases`: Contains a curated set of aliases and shell functions to simplify common commands and workflows. See the "Aliases and Functions" section below for details.
--   `.paru_fzf.zsh`: Implements the interactive package management function (`pf`) for all supported operating systems and package managers.
--   `.zshrc.local`: An optional file for your private, machine-specific settings (e.g., environment variables with sensitive keys). It is sourced by `.zshrc` if it exists.
+## Configuration
 
-### Aliases and Functions (`.zsh_aliases`)
+### Files in `~/.ziro`
 
-This file is the heart of the workflow enhancements. Here are some of the key helpers available:
+| File | Purpose |
+|---|---|
+| `.zshrc` | Main entry point. Handles znap bootstrap, options, and sources all other files. Symlinked from `~/.zshrc`. |
+| `.prompt.local` | Manages Starship prompt. Auto-installs Starship if missing. Generates default `starship.toml`. |
+| `.zsh_aliases` | Curated aliases and functions. |
+| `.paru_fzf.zsh` | Interactive package manager (`pf` command). |
+| `.zshrc.local` | Your machine-specific settings. Never overwritten by the installer. |
+| `.zsh_update.zsh` | Background update checker (runs on shell startup). |
+| `ziro/` | Python engine (install/update/doctor). |
 
-| Command                             | Description                                                              |
-| ----------------------------------- | ------------------------------------------------------------------------ |
-| **Navigation**                      |                                                                          |
-| `mkcd <dir>`                        | Creates a directory and immediately `cd`'s into it.                      |
-| `cdf`                               | Uses `fzf` to fuzzy-find a subdirectory and `cd` into it.                |
-| `up <n>`                            | Navigates up `n` parent directories (e.g., `up 3`).                      |
-| **System Maintenance (Arch)**       |                                                                          |
-| `softar`                            | Safely removes all orphaned packages.                                    |
-| `rebuild_system`                    | Rebuilds the initramfs and GRUB configuration in one go.                 |
-| `reflectmirrors [countries]`        | Refreshes Arch Linux mirrors, sorting by speed (e.g., `reflectmirrors "Germany,France"`). |
-| **Utilities**                       |                                                                          |
-| `extract <file>`                    | Extracts any common archive type (`.zip`, `.tar.gz`, `.rar`, etc.).       |
-| `cheat <cmd> <term>`                | Searches the man page of `<cmd>` for a specific `<term>`.                |
-| `refonts`                           | Force-refreshes the system's font cache.                                 |
-| **Global Aliases**                  |                                                                          |
-| `G`                                 | Global alias for `| grep`. Example: `ps aux G zsh`                       |
-| `H` / `T` / `L`                     | Global aliases for piping to `head`, `tail`, or `less`.                  |
+### Your own settings
 
-### Package Management (`pf`)
+Edit `~/.ziro/.zshrc.local` for machine-specific configuration:
 
-Run the `pf` command to open an interactive `fzf` menu for managing your system packages. It automatically detects your package manager and allows you to:
--   **Search and install packages** from the repositories.
--   **Remove packages** that are currently installed.
--   **Clean orphaned packages** to free up disk space.
--   **List explicitly installed** or **foreign/extra** packages.
+```bash
+# Personal aliases
+alias work='cd ~/projects/work'
 
-### SSH Agent Management
+# Environment variables
+export EDITOR='nvim'
+export BROWSER='firefox'
+```
 
-The configuration includes a robust script to automatically manage an `ssh-agent` instance.
--   The agent is started on your first Zsh session.
--   The agent's environment is saved and reused across all subsequent shell sessions.
--   It automatically loads your `~/.ssh/id_ed25519` key, so you only need to enter your passphrase once per session.
+The installer never modifies `.zshrc.local` if it already exists. Your Starship configuration (`~/.config/starship.toml`) is also preserved if you customize it.
 
-## 🔌 Plugins
+### Key aliases and functions
 
-This setup uses a minimal but powerful set of plugins, all loaded via `znap`:
--   `fast-syntax-highlighting`: Provides real-time syntax highlighting for commands.
--   `zsh-autosuggestions`: Suggests commands as you type based on your history.
--   `zsh-completions`: Provides additional completion definitions for many common tools.
--   `z`: Allows you to jump to your most frequently used directories.
--   And several others for git integration, colored man pages, and more.
+| Command | Description |
+|---|---|
+| `pf` | Interactive package manager (fzf) |
+| `softar` | Remove orphaned packages |
+| `extract <file>` | Extract any archive |
+| `mkcd <dir>` | Create and enter a directory |
+| `cdf` | Fuzzy-find a subdirectory |
+| `up <n>` | Go up n directories |
+| `cheat <cmd> <term>` | Search man pages |
+| `refonts` | Refresh font cache |
+| `rebuild_system` | Rebuild initramfs + GRUB (Arch) |
+| `reflectmirrors` | Refresh Arch mirrors by speed |
+| `zsh_update` | Update Ziro |
+| `ziro doctor` | Check installation health |
 
-## 📝 License
+Global aliases: `G` (grep), `H` (head), `T` (tail), `L` (less).
 
-This project is licensed under the MIT License. Feel free to use, modify, and distribute it as you see fit.
+### Plugins (via znap)
+
+- `fast-syntax-highlighting` - real-time syntax highlighting
+- `zsh-autosuggestions` - autosuggest from history
+- `zsh-completions` - additional completions
+- `z` - directory jumping by frecency
+- `wd` - bookmarks (desktop)
+- `alias-tips` - hints for available aliases (desktop)
+
+## Upgrading from legacy installs
+
+If you previously installed Ziro at `~/.zsh_config`, the installer migrates it to `~/.ziro` automatically. The runtime checks `~/.ziro` first, then falls back to `~/.zsh_config`. Your `.zshrc.local` and Starship configuration are preserved through migration.
+
+## License
+
+MIT

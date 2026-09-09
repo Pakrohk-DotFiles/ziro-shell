@@ -1,5 +1,5 @@
 ########################################
-# Aliases and Functions for ZSH
+# Ziro Aliases and Functions for ZSH
 # Keep .zshrc clean & modular
 ########################################
 
@@ -73,7 +73,13 @@ softar() {
   echo "[*] Removing orphaned packages..."
   if command -v paru >/dev/null 2>&1 || command -v pacman >/dev/null 2>&1; then
     if [ -f /etc/arch-release ]; then
-      sudo pacman -Rn $(pacman -Qdtq)
+      local orphans
+      orphans=$(pacman -Qdtq)
+      if [[ -z "$orphans" ]]; then
+        echo "[✓] No orphans found."
+        return 0
+      fi
+      sudo pacman -Rn ${=orphans}
     fi
   elif command -v brew >/dev/null 2>&1; then
     brew cleanup
@@ -94,6 +100,9 @@ softar() {
 if [ -f /etc/arch-release ]; then
     repack_arch() {
       echo "[*] Reinstalling all explicitly installed packages..."
+      local pkgs
+      pkgs=$(pacman -Qnq)
+      [[ -z "$pkgs" ]] && { echo "[!] No packages to reinstall."; return 1; }
       pacman -Qnq | sudo pacman -Sy -
     }
 fi
@@ -112,8 +121,8 @@ cdf() {
 
 # Go up N directories (e.g., up 3)
 up() {
-  local d=""
-  limit=$1
+  local d="" limit
+  limit=${1:-1}
   for ((i=1 ; i<=limit ; i++)); do
     d="../$d"
   done
@@ -147,7 +156,6 @@ extract() {
     echo "'$1' is not a valid file"
   fi
 }
-
 ### --- Global Aliases ---
 alias -g G='| grep'                       # Quick pipe to grep
 alias -g H='| head'                       # Quick pipe to head
@@ -169,6 +177,6 @@ alias netmon='nload'
 alias netspect='iftop'
 
 ########################################
-# End of ~/.zsh_aliases
+# End of Ziro ~/.zsh_aliases
 ########################################
 
