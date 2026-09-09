@@ -1,10 +1,15 @@
 ########################################
-# ~/.zshrc - Complete ZSH Configuration
+# Ziro ~/.zshrc - Complete ZSH Configuration
 ########################################
 
 # --- Centralized Config Path ---
 # All other config files are sourced from here.
-ZSH_CONFIG_DIR=~/.zsh_config
+# Supports both new (~/.ziro) and legacy (~/.zsh_config) install locations.
+if [[ -d ~/.ziro ]]; then
+    ZSH_CONFIG_DIR=~/.ziro
+else
+    ZSH_CONFIG_DIR=~/.zsh_config
+fi
 
 # --- macOS-specific Homebrew environment setup ---
 if [[ "$(uname)" == "Darwin" ]]; then
@@ -231,5 +236,5 @@ autoload -Uz compinit
 compinit
 
 ########################################
-# End of ~/.zshrc
+# End of Ziro ~/.zshrc
 ########################################
