@@ -13,7 +13,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--version", action="version",
                         version=f"ziro {__version__}")
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command")
 
     p_install = sub.add_parser("install", help="install or repair Ziro")
     p_install.add_argument("--desktop", action="store_true",
@@ -45,6 +45,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+    if not argv:
+        argv = ["install"]
     args = build_parser().parse_args(argv)
 
     if args.command == "install":

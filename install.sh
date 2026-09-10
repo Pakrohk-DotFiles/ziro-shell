@@ -46,4 +46,4 @@ if [ -z "$SCRIPT_DIR" ] || [ ! -d "$SCRIPT_DIR/ziro" ]; then
     exec bash "$TMPDIR_INSTALL/install.sh" "$@"
 fi
 
-exec "$PYTHON" "$SCRIPT_DIR/ziro/" "$@"
+exec "$PYTHON" "$SCRIPT_DIR/ziro/" "${@:-install}"
