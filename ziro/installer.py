@@ -79,6 +79,7 @@ def install(opts: Options) -> int:
         _backup_existing(opts)
         if not _link_zshrc(opts, config_dir):
             return 1
+        _install_cli(opts, config_dir)
         _create_local_config(opts, config_dir)
         _change_shell(opts, plat)
         _final_compile(opts, config_dir)
@@ -305,6 +306,35 @@ def _link_zshrc(opts: Options, config_dir: Path) -> bool:
     dst.symlink_to(src)
     ui.configured(f"~/.zshrc -> {src}")
     return True
+
+
+def _install_cli(opts: Options, config_dir: Path) -> None:
+    """Symlink `ziro-cli` to ~/.local/bin/ziro so the `ziro` command is on PATH."""
+    ui.section("Installing CLI")
+    bin_dir = _home() / ".local" / "bin"
+    src = config_dir / "ziro-cli"
+    dst = bin_dir / "ziro"
+
+    if opts.dry_run:
+        ui.info(f"Would symlink {dst} -> {src}")
+        return
+
+    if not src.is_file():
+        ui.warn(f"{src} not found; skipping CLI installation")
+        return
+
+    if not bin_dir.is_dir():
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        ui.info(f"Created {bin_dir}")
+
+    if dst.is_symlink() and os.readlink(dst) == str(src):
+        ui.present("~/.local/bin/ziro link")
+        return
+
+    if dst.exists() or dst.is_symlink():
+        dst.unlink()
+    dst.symlink_to(src)
+    ui.configured(f"~/.local/bin/ziro -> {src}")
 
 
 def _create_local_config(opts: Options, config_dir: Path) -> None:

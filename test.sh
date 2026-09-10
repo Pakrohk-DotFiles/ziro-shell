@@ -71,12 +71,12 @@ run_test "dry-run" 0 "$TMP" \
 rm -rf "$TMP"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 2. Fresh install — creates ~/.ziro, ~/.zshrc symlink, .zshrc.local
+# 2. Fresh install — creates ~/.ziro, ~/.zshrc symlink, .zshrc.local, CLI
 # ═══════════════════════════════════════════════════════════════════════════════
 echo "=== 2. Fresh install ==="
 TMP=$(mktemp -d /tmp/opencode/ziro-2-XXXX)
 run_test_check "fresh-install" 0 "$TMP" \
-    'test -f "$HOME/.ziro/.zshrc" && test -f "$HOME/.ziro/.zshrc.local" && test -L "$HOME/.zshrc" && test "$(readlink "$HOME/.zshrc")" = "$HOME/.ziro/.zshrc"' \
+    'test -f "$HOME/.ziro/.zshrc" && test -f "$HOME/.ziro/.zshrc.local" && test -L "$HOME/.zshrc" && test "$(readlink "$HOME/.zshrc")" = "$HOME/.ziro/.zshrc" && test -f "$HOME/.ziro/ziro-cli" && test -L "$HOME/.local/bin/ziro" && test "$(readlink "$HOME/.local/bin/ziro")" = "$HOME/.ziro/ziro-cli"' \
     "$PY" "$ENGINE" install --non-interactive --skip-deps --skip-shell
 rm -rf "$TMP"
 
