@@ -7,8 +7,11 @@
 # Supports both new (~/.ziro) and legacy (~/.zsh_config) install locations.
 if [[ -d ~/.ziro ]]; then
     ZSH_CONFIG_DIR=~/.ziro
-else
+elif [[ -d ~/.zsh_config ]]; then
     ZSH_CONFIG_DIR=~/.zsh_config
+else
+    # Neither directory exists — not installed yet. Bail out early.
+    return 2>/dev/null || exit 0
 fi
 
 # --- macOS-specific Homebrew environment setup ---
