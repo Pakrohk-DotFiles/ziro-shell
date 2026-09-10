@@ -20,8 +20,17 @@ if [ -z "$PYTHON" ]; then
 fi
 
 # --- Locate the engine (ziro/) ---
-# 1. Resolve from this script's location (works when symlinked from ~/.local/bin)
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+# 1. Resolve from this script's real location (follow symlinks so
+#    ~/.local/bin/ziro -> ~/.ziro/ziro-cli works from any cwd).
+SELF="${BASH_SOURCE[0]:-$0}"
+while [ -L "$SELF" ]; do
+    LINK_TARGET="$(readlink "$SELF")"
+    case "$LINK_TARGET" in
+        /*) SELF="$LINK_TARGET" ;;
+        *)  SELF="$(dirname -- "$SELF")/$LINK_TARGET" ;;
+    esac
+done
+SCRIPT_DIR="$(cd -- "$(dirname -- "$SELF")" && pwd -P)"
 
 # 2. The engine lives next to this script in the repo root.
 if [ -d "$SCRIPT_DIR/ziro" ]; then

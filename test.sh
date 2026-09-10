@@ -57,6 +57,9 @@ seed_repo() {
     cp "$REPO/.zshrc" "$d/"
     cp "$REPO/.zsh_aliases" "$d/"
     cp "$REPO/.gitignore" "$d/"
+    if [ -d "$REPO/znap" ]; then
+        cp -r "$REPO/znap" "$d/"
+    fi
     git -C "$d" init -q 2>/dev/null
     git -C "$d" remote add origin https://github.com/Pakrohk-DotFiles/ziro-shell.git 2>/dev/null || true
 }
