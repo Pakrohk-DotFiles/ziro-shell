@@ -32,7 +32,7 @@ check_for_updates() {
     [[ -n "$_ziro_python" ]] || return
     local remote_url
     remote_url=$(git -C "$ZSH_CONFIG_DIR" remote get-url origin 2>/dev/null) || return
-    [[ "$remote_url" == *Pakrohk-DotFiles/zsh_config* ]] || return
+    [[ "$remote_url" == *Pakrohk-DotFiles/ziro-shell* ]] || return
 
     local current_time=$(date +%s)
     local last_check=0

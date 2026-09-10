@@ -58,7 +58,7 @@ seed_repo() {
     cp "$REPO/.zsh_aliases" "$d/"
     cp "$REPO/.gitignore" "$d/"
     git -C "$d" init -q 2>/dev/null
-    git -C "$d" remote add origin https://github.com/Pakrohk-DotFiles/zsh_config.git 2>/dev/null || true
+    git -C "$d" remote add origin https://github.com/Pakrohk-DotFiles/ziro-shell.git 2>/dev/null || true
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -149,7 +149,7 @@ for f in .zshrc .zsh_aliases .zsh_update.zsh .prompt.local .gitignore .zshrc.loc
 done
 cp -r "$REPO/znap" "$TMP/.zsh_config/"
 git -C "$TMP/.zsh_config" init -q 2>/dev/null
-git -C "$TMP/.zsh_config" remote add origin https://github.com/Pakrohk-DotFiles/zsh_config.git
+git -C "$TMP/.zsh_config" remote add origin https://github.com/Pakrohk-DotFiles/ziro-shell.git
 sed -i 's|ZSH_CONFIG_DIR=~/.ziro|ZSH_CONFIG_DIR=~/.zsh_config|' "$TMP/.zsh_config/.zshrc"
 echo "legacy user config" > "$TMP/.zsh_config/.zshrc.local"
 ln -sf "$TMP/.zsh_config/.zshrc" "$TMP/.zshrc"
@@ -191,7 +191,7 @@ mkdir -p "$TMP/.zsh_config"
 cp "$REPO/.zshrc" "$TMP/.zsh_config/"
 cp "$REPO/.zsh_update.zsh" "$TMP/.zsh_config/"
 git -C "$TMP/.zsh_config" init -q 2>/dev/null
-git -C "$TMP/.zsh_config" remote add origin https://github.com/Pakrohk-DotFiles/zsh_config.git
+git -C "$TMP/.zsh_config" remote add origin https://github.com/Pakrohk-DotFiles/ziro-shell.git
 ln -sf "$TMP/.zsh_config/.zshrc" "$TMP/.zshrc"
 run_test "legacy-doctor" 1 "$TMP" "$PY" "$ENGINE" doctor
 rm -rf "$TMP"

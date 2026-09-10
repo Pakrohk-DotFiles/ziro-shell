@@ -33,27 +33,27 @@ Ziro is a complete shell environment for developers and power users. It installs
 ### Linux / macOS
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/zsh_config/refs/heads/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/ziro-shell/refs/heads/main/install.sh | bash
 ```
 
 With options:
 
 ```bash
 # Server mode (minimal)
-curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/zsh_config/refs/heads/main/install.sh | bash -s -- --server
+curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/ziro-shell/refs/heads/main/install.sh | bash -s -- --server
 
 # Desktop mode (full features)
-curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/zsh_config/refs/heads/main/install.sh | bash -s -- --desktop
+curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/ziro-shell/refs/heads/main/install.sh | bash -s -- --desktop
 
 # Non-interactive
-curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/zsh_config/refs/heads/main/install.sh | bash -s -- --non-interactive --skip-deps
+curl -fsSL https://raw.githubusercontent.com/Pakrohk-DotFiles/ziro-shell/refs/heads/main/install.sh | bash -s -- --non-interactive --skip-deps
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
-iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/Pakrohk-DotFiles/zsh_config/refs/heads/main/install.ps1'))
+iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/Pakrohk-DotFiles/ziro-shell/refs/heads/main/install.ps1'))
 ```
 
 The PowerShell launcher finds Python and delegates to the same engine. Use WSL for the full experience; native Windows supports `ziro doctor` but `install` requires a Unix environment.
@@ -61,7 +61,7 @@ The PowerShell launcher finds Python and delegates to the same engine. Use WSL f
 ### From a local clone
 
 ```bash
-git clone https://github.com/Pakrohk-DotFiles/zsh_config.git ~/.ziro
+git clone https://github.com/Pakrohk-DotFiles/ziro-shell.git ~/.ziro
 bash ~/.ziro/install.sh
 ```
 

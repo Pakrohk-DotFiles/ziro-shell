@@ -13,8 +13,8 @@ from pathlib import Path
 from . import ui
 from .runner import capture, quiet, run
 
-REPO_URL = "https://github.com/Pakrohk-DotFiles/zsh_config.git"
-REMOTE_HINT = "Pakrohk-DotFiles/zsh_config"
+REPO_URL = "https://github.com/Pakrohk-DotFiles/ziro-shell.git"
+REMOTE_HINT = "Pakrohk-DotFiles/ziro-shell"
 NEW_DIR = ".ziro"          # under HOME
 LEGACY_DIR = ".zsh_config"  # under HOME
 
