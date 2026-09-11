@@ -294,77 +294,165 @@ run_test_check "update-untracks-zshrc-local" 0 "$TMP" \
 rm -rf "$TMP"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 15. Arch/macOS Python dependency regression — python-virtualenvwrapper
-#     must NOT appear in system package lists (not a pacman/brew package)
+# 15. Python package-map regression
 # ═══════════════════════════════════════════════════════════════════════════════
 echo "=== 15. Python package regression ==="
 
-# 15a. Arch with Python enabled: no virtualenvwrapper in system packages
-TOTAL=$((TOTAL + 1))
-arch_base=$($PY -c "
+# Helper: query packages_for via Python, output space-separated base list
+_py() {
+    python3 -c "
 from ziro.packages import packages_for
 from ziro.platform import Platform
-p = Platform(os_name='Arch', pkg_mgr='pacman')
-base, _ = packages_for(p, 'Desktop', True, True, True, True)
-print('\n'.join(base))
-" 2>/dev/null)
-if echo "$arch_base" | grep -q "python-virtualenvwrapper"; then
-    FAILED=$((FAILED + 1))
-    ERRORS="${ERRORS}  - arch-no-virtualenvwrapper (python-virtualenvwrapper found in Arch packages)\n"
-    echo "[FAIL] arch-no-virtualenvwrapper — python-virtualenvwrapper in Arch base"
+p = Platform(os_name='$1', pkg_mgr='$2')
+base, extra = packages_for(p, '$3', $4, $5, $6, $7)
+print('BASE:' + ' '.join(base))
+print('EXTRA:' + ' '.join(extra))
+" 2>/dev/null
+}
+
+check_has()    { echo "$1" | grep -qw "$2"; }
+check_no()     { ! echo "$1" | grep -qw "$2"; }
+check_in()     { check_has "$1" "$2"; }
+check_not_in() { check_no "$1" "$2"; }
+
+# ── 15a. Arch + Python: python present, virtualenvwrapper absent ──
+TOTAL=$((TOTAL + 1))
+out=$(_py Arch pacman Desktop True True True True)
+if check_in "$out" "python" && check_not_in "$out" "python-virtualenvwrapper"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] arch-python-present-no-vw"
 else
-    PASSED=$((PASSED + 1)); echo "[PASS] arch-no-virtualenvwrapper"
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - arch-python-present-no-vw\n"
+    echo "[FAIL] arch-python-present-no-vw"
 fi
 
-# 15b. macOS with Python enabled: no virtualenvwrapper in system packages
+# ── 15b. Arch + no-python: python absent ──
 TOTAL=$((TOTAL + 1))
-mac_base=$($PY -c "
-from ziro.packages import packages_for
-from ziro.platform import Platform
-p = Platform(os_name='macOS', pkg_mgr='brew')
-base, _ = packages_for(p, 'Desktop', True, True, True, True)
-print('\n'.join(base))
-" 2>/dev/null)
-if echo "$mac_base" | grep -q "python-virtualenvwrapper"; then
-    FAILED=$((FAILED + 1))
-    ERRORS="${ERRORS}  - mac-no-virtualenvwrapper (python-virtualenvwrapper found in macOS packages)\n"
-    echo "[FAIL] mac-no-virtualenvwrapper — python-virtualenvwrapper in macOS base"
+out=$(_py Arch pacman Desktop False True True True)
+if check_not_in "$out" "python"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] arch-no-python-absent"
 else
-    PASSED=$((PASSED + 1)); echo "[PASS] mac-no-virtualenvwrapper"
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - arch-no-python-absent\n"
+    echo "[FAIL] arch-no-python-absent"
 fi
 
-# 15c. Arch with --no-python: no python in system packages
+# ── 15c. macOS + Python: python present, virtualenvwrapper absent ──
 TOTAL=$((TOTAL + 1))
-arch_nopy=$($PY -c "
-from ziro.packages import packages_for
-from ziro.platform import Platform
-p = Platform(os_name='Arch', pkg_mgr='pacman')
-base, _ = packages_for(p, 'Desktop', False, True, True, True)
-print('\n'.join(base))
-" 2>/dev/null)
-if echo "$arch_nopy" | grep -qw "python"; then
-    FAILED=$((FAILED + 1))
-    ERRORS="${ERRORS}  - arch-no-python (python found with --no-python)\n"
-    echo "[FAIL] arch-no-python — python in Arch base despite --no-python"
+out=$(_py macOS brew Desktop True True True True)
+if check_in "$out" "python" && check_not_in "$out" "python-virtualenvwrapper"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] mac-python-present-no-vw"
 else
-    PASSED=$((PASSED + 1)); echo "[PASS] arch-no-python"
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - mac-python-present-no-vw\n"
+    echo "[FAIL] mac-python-present-no-vw"
 fi
 
-# 15d. Debian/Ubuntu still has correct packages (no regression)
+# ── 15d. macOS + no-python: python absent ──
 TOTAL=$((TOTAL + 1))
-deb_base=$($PY -c "
-from ziro.packages import packages_for
-from ziro.platform import Platform
-p = Platform(os_name='Debian/Ubuntu', pkg_mgr='apt')
-base, _ = packages_for(p, 'Desktop', True, True, True, True)
-print('\n'.join(base))
-" 2>/dev/null)
-if echo "$deb_base" | grep -q "python3-venv" && ! echo "$deb_base" | grep -q "python-virtualenvwrapper"; then
+out=$(_py macOS brew Desktop False True True True)
+if check_not_in "$out" "python"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] mac-no-python-absent"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - mac-no-python-absent\n"
+    echo "[FAIL] mac-no-python-absent"
+fi
+
+# ── 15e. Debian + Python: python3-venv present, python-virtualenvwrapper absent ──
+TOTAL=$((TOTAL + 1))
+out=$(_py "Debian/Ubuntu" apt Desktop True True True True)
+if check_in "$out" "python3-venv" && check_not_in "$out" "python-virtualenvwrapper"; then
     PASSED=$((PASSED + 1)); echo "[PASS] debian-python-packages"
 else
     FAILED=$((FAILED + 1))
-    ERRORS="${ERRORS}  - debian-python-packages (expected python3-venv, no python-virtualenvwrapper)\n"
+    ERRORS="${ERRORS}  - debian-python-packages\n"
     echo "[FAIL] debian-python-packages"
+fi
+
+# ── 15f. Debian + no-python: python3-venv absent ──
+TOTAL=$((TOTAL + 1))
+out=$(_py "Debian/Ubuntu" apt Desktop False True True True)
+if check_not_in "$out" "python3-venv"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] debian-no-python-absent"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - debian-no-python-absent\n"
+    echo "[FAIL] debian-no-python-absent"
+fi
+
+# ── 15g. Fedora + Python: python3-virtualenvwrapper present ──
+TOTAL=$((TOTAL + 1))
+out=$(_py Fedora dnf Desktop True True True True)
+if check_in "$out" "python3" && check_in "$out" "python3-virtualenvwrapper"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] fedora-python-packages"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - fedora-python-packages\n"
+    echo "[FAIL] fedora-python-packages"
+fi
+
+# ── 15h. Fedora + no-python: python3-virtualenvwrapper absent ──
+TOTAL=$((TOTAL + 1))
+out=$(_py Fedora dnf Desktop False True True True)
+if check_not_in "$out" "python3-virtualenvwrapper"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] fedora-no-python-absent"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - fedora-no-python-absent\n"
+    echo "[FAIL] fedora-no-python-absent"
+fi
+
+# ── 15i. Core packages always present (Arch, all flags off) ──
+TOTAL=$((TOTAL + 1))
+out=$(_py Arch pacman Desktop False False False False)
+has_core=true
+for pkg in zsh git curl fzf starship; do
+    check_in "$out" "$pkg" || has_core=false
+done
+if $has_core; then
+    PASSED=$((PASSED + 1)); echo "[PASS] arch-core-packages"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - arch-core-packages\n"
+    echo "[FAIL] arch-core-packages"
+fi
+
+# ── 15j. Core packages always present (Debian, all flags off) ──
+TOTAL=$((TOTAL + 1))
+out=$(_py "Debian/Ubuntu" apt Desktop False False False False)
+has_core=true
+for pkg in zsh git curl fzf starship; do
+    check_in "$out" "$pkg" || has_core=false
+done
+if $has_core; then
+    PASSED=$((PASSED + 1)); echo "[PASS] debian-core-packages"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - debian-core-packages\n"
+    echo "[FAIL] debian-core-packages"
+fi
+
+# ── 15k. Server mode adds nmap, iftop, etc. (Arch) ──
+TOTAL=$((TOTAL + 1))
+out=$(_py Arch pacman Server True True True True)
+if check_in "$out" "nmap" && check_in "$out" "iftop" && check_in "$out" "mtr"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] arch-server-net-packages"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - arch-server-net-packages\n"
+    echo "[FAIL] arch-server-net-packages"
+fi
+
+# ── 15l. Language packages not in extras (Arch) ──
+TOTAL=$((TOTAL + 1))
+out=$(_py Arch pacman Desktop True True True True)
+if check_not_in "$out" "EXTRA:python" && check_not_in "$out" "EXTRA:rustup" && check_not_in "$out" "EXTRA:go"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] arch-lang-not-in-extras"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - arch-lang-not-in-extras\n"
+    echo "[FAIL] arch-lang-not-in-extras"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
