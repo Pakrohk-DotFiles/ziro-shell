@@ -47,6 +47,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_install.add_argument("--no-node", dest="enable_node", action="store_false",
                            help="disable Node tooling (skip prompt)")
 
+    p_theme = sub.add_parser("theme", help="list or apply Starship prompt themes")
+    p_theme_sub = p_theme.add_subparsers(dest="theme_command")
+    p_theme_sub.add_parser("list", help="list available themes")
+    p_theme_sub.add_parser("current", help="show currently applied theme")
+    p_apply = p_theme_sub.add_parser("apply", help="apply a theme")
+    p_apply.add_argument("name", nargs="?", help="theme name (see: ziro theme list)")
+
     sub.add_parser("update", help="update Ziro to the latest version")
     sub.add_parser("doctor", help="check installation health")
     return parser
@@ -81,6 +88,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "update":
         from .updater import update
         return update()
+
+    if args.command == "theme":
+        from . import themecmd
+        return themecmd.run(args.theme_command, getattr(args, "name", None))
 
     if args.command == "doctor":
         from .doctor import doctor

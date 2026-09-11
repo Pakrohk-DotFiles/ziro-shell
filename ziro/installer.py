@@ -137,6 +137,12 @@ def install(opts: Options) -> int:
         _install_cli(opts, config_dir)
         if not opts.dry_run:
             _persist_language_flags(config_dir, lang_values)
+            _resolve_prompt_theme(opts, config_dir, {
+                "ENABLE_PYTHON": opts.enable_python is not False,
+                "ENABLE_RUST": opts.enable_rust is not False,
+                "ENABLE_GO": opts.enable_go is not False,
+                "ENABLE_NODE": opts.enable_node is not False,
+            })
         _create_local_config(opts, config_dir)
         _change_shell(opts, plat)
         _final_compile(opts, config_dir)
@@ -392,6 +398,45 @@ def _install_cli(opts: Options, config_dir: Path) -> None:
         dst.unlink()
     dst.symlink_to(src)
     ui.configured(f"~/.local/bin/ziro -> {src}")
+
+
+def _resolve_prompt_theme(opts: Options, config_dir: Path,
+                          lang_flags: dict[str, bool]) -> None:
+    """Ask about the prompt theme and apply it.
+
+    Asks only when ~/.config/starship.toml is missing or ziro-managed;
+    a user-owned config is never touched. --non-interactive applies the
+    default theme to a missing file, otherwise leaves things alone.
+    `lang_flags` are the resolved language flags for segment rendering.
+    """
+    from . import theme, themecmd
+
+    def write(name: str) -> None:
+        themecmd._write(name, lang_flags)  # noqa: SLF001
+
+    conf = themecmd.CONFIG_PATH
+    if conf.exists() and not theme.is_managed(conf):
+        ui.present("prompt theme (user-owned starship.toml preserved)")
+        return
+    if opts.non_interactive:
+        if not conf.exists():
+            write(theme.DEFAULT_THEME)
+        else:
+            ui.present("prompt theme")
+        return
+
+    ui.section("Prompt theme")
+    current = themecmd._current_theme()  # noqa: SLF001
+    if current:
+        ui.info(f"Current theme: {current}")
+        if not ui.confirm("Change the prompt theme?", default_yes=False):
+            return
+    elif not ui.confirm("Customize the prompt theme?", default_yes=False):
+        ui.info("Default theme applied; change later with: ziro theme apply <name>")
+        write(theme.DEFAULT_THEME)
+        return
+    if themecmd._apply_interactive(lang_flags) != 0:  # noqa: SLF001
+        ui.warn("Theme not applied; run 'ziro theme list' to retry")
 
 
 def _create_local_config(opts: Options, config_dir: Path) -> None:
