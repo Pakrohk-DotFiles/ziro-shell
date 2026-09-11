@@ -44,6 +44,6 @@ if (-not $engine) {
     exit 1
 }
 
-if ($python -match "py\.exe$") { & $python -3 $engine @args }
-else { & $python $engine @args }
+if ($python -match "py\.exe$") { & $python -3 $engine install @args }
+else { & $python $engine install @args }
 exit $LASTEXITCODE
