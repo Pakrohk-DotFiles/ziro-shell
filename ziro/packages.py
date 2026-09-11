@@ -25,12 +25,12 @@ def packages_for(
     if os_name == "macOS":
         extra = ["p7zip", "unzip"]
         if enable_python:
-            lang += ["python", "python-virtualenvwrapper"]
+            lang.append("python")
 
     elif os_name == "Arch":
         extra = ["base-devel", "reflector", "p7zip", "unzip"]
         if enable_python:
-            lang += ["python", "python-virtualenvwrapper"]
+            lang.append("python")
         if enable_rust:
             lang.append("rustup")
         if enable_go:
