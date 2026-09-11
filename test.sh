@@ -61,7 +61,8 @@ seed_repo() {
         cp -r "$REPO/znap" "$d/"
     fi
     git -C "$d" init -q 2>/dev/null
-    git -C "$d" remote add origin https://github.com/Pakrohk-DotFiles/ziro-shell.git 2>/dev/null || true
+    # Use a local bare repo as origin (avoids network in tests).
+    # Install will try git pull, fail, and use the local copy.
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -124,6 +125,9 @@ rm -rf "$TMP"
 echo "=== 6. Update ==="
 TMP=$(mktemp -d /tmp/opencode/ziro-6-XXXX)
 cp -r "$REPO" "$TMP/.ziro"
+git -C "$TMP/.ziro" remote set-url origin "https://github.com/Pakrohk-DotFiles/ziro-shell.git"
+git -C "$TMP/.ziro" config http.lowSpeedLimit 1000
+git -C "$TMP/.ziro" config http.lowSpeedTime 3
 run_test_check "update" 0 "$TMP" \
     'test -f "$HOME/.ziro/.git/config"' \
     "$PY" "$ENGINE" update
@@ -136,6 +140,8 @@ echo "=== 7. Update with dirty state ==="
 TMP=$(mktemp -d /tmp/opencode/ziro-7-XXXX)
 cp -r "$REPO" "$TMP/.ziro"
 echo "# dirty" >> "$TMP/.ziro/readme.md"
+git -C "$TMP/.ziro" config http.lowSpeedLimit 1000
+git -C "$TMP/.ziro" config http.lowSpeedTime 3
 run_test_check "update-dirty" 0 "$TMP" \
     'test -f "$HOME/.ziro/readme.md"' \
     "$PY" "$ENGINE" update

@@ -73,13 +73,25 @@ def _resolve_language_flags(opts: Options) -> dict[str, str]:
 
 
 def _persist_language_flags(config_dir: Path, values: dict[str, str]) -> None:
-    """Merge ENABLE_* values into the user's .zshrc.local, preserving everything else."""
+    """Merge ENABLE_* values into the user's .zshrc.local, preserving everything else.
+
+    Also strips legacy unguarded ``znap fpath`` rustup/cargo lines that
+    were shipped in older .zshrc.local files — they cause
+    ``command not found: rustup`` on every shell start when Rust is disabled.
+    """
     local = config_dir / ".zshrc.local"
+    _STRIP_PREFIXES = ("ENABLE_PYTHON", "ENABLE_RUST", "ENABLE_GO", "ENABLE_NODE")
+    _LEGACY_STRIP = (
+        "znap fpath _rustup 'rustup completions zsh'",
+        "znap fpath _cargo 'rustup completions zsh cargo'",
+    )
     lines = []
     if local.is_file():
         for line in local.read_text(encoding="utf-8", errors="replace").splitlines():
             key = line.strip().removeprefix("export ").split("=")[0].strip()
-            if key in ("ENABLE_PYTHON", "ENABLE_RUST", "ENABLE_GO", "ENABLE_NODE"):
+            if key in _STRIP_PREFIXES:
+                continue
+            if line.strip() in _LEGACY_STRIP:
                 continue
             lines.append(line)
     lines += [
