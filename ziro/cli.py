@@ -47,6 +47,40 @@ def build_parser() -> argparse.ArgumentParser:
     p_install.add_argument("--no-node", dest="enable_node", action="store_false",
                            help="disable Node tooling (skip prompt)")
 
+    # Shell features
+    p_install.add_argument("--with-zcolors", dest="enable_zcolors", action="store_true",
+                           default=None, help="enable zcolors (skip prompt)")
+    p_install.add_argument("--no-zcolors", dest="enable_zcolors", action="store_false",
+                           help="disable zcolors (skip prompt)")
+    p_install.add_argument("--with-wd", dest="enable_wd", action="store_true",
+                           default=None, help="enable wd bookmarks (skip prompt)")
+    p_install.add_argument("--no-wd", dest="enable_wd", action="store_false",
+                           help="disable wd bookmarks (skip prompt)")
+    p_install.add_argument("--with-alias-tips", dest="enable_alias_tips", action="store_true",
+                           default=None, help="enable alias-tips (skip prompt)")
+    p_install.add_argument("--no-alias-tips", dest="enable_alias_tips", action="store_false",
+                           help="disable alias-tips (skip prompt)")
+    p_install.add_argument("--with-z", dest="enable_z", action="store_true",
+                           default=None, help="enable z directory jumping (skip prompt)")
+    p_install.add_argument("--no-z", dest="enable_z", action="store_false",
+                           help="disable z directory jumping (skip prompt)")
+    p_install.add_argument("--with-pf", dest="enable_pf", action="store_true",
+                           default=None, help="enable pf package manager (skip prompt)")
+    p_install.add_argument("--no-pf", dest="enable_pf", action="store_false",
+                           help="disable pf package manager (skip prompt)")
+    p_install.add_argument("--with-ssh-agent", dest="enable_ssh_agent", action="store_true",
+                           default=None, help="enable SSH agent (skip prompt)")
+    p_install.add_argument("--no-ssh-agent", dest="enable_ssh_agent", action="store_false",
+                           help="disable SSH agent (skip prompt)")
+    p_install.add_argument("--with-update-check", dest="enable_update_check", action="store_true",
+                           default=None, help="enable background update check (skip prompt)")
+    p_install.add_argument("--no-update-check", dest="enable_update_check", action="store_false",
+                           help="disable background update check (skip prompt)")
+    p_install.add_argument("--with-nmap", dest="enable_nmap", action="store_true",
+                           default=None, help="enable nmap completions (skip prompt)")
+    p_install.add_argument("--no-nmap", dest="enable_nmap", action="store_false",
+                           help="disable nmap completions (skip prompt)")
+
     p_theme = sub.add_parser("theme", help="list or apply Starship prompt themes")
     p_theme_sub = p_theme.add_subparsers(dest="theme_command")
     p_theme_sub.add_parser("list", help="list available themes")
@@ -82,6 +116,14 @@ def main(argv: list[str] | None = None) -> int:
             enable_rust=args.enable_rust,
             enable_go=args.enable_go,
             enable_node=args.enable_node,
+            enable_zcolors=args.enable_zcolors,
+            enable_wd=args.enable_wd,
+            enable_alias_tips=args.enable_alias_tips,
+            enable_z=args.enable_z,
+            enable_pf=args.enable_pf,
+            enable_ssh_agent=args.enable_ssh_agent,
+            enable_update_check=args.enable_update_check,
+            enable_nmap=args.enable_nmap,
         )
         return install(opts)
 

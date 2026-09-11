@@ -48,11 +48,32 @@ if [[ "$EUID" -eq 0 ]]; then
     export ZSH_ENV_TYPE='server'
 fi
 
-# Define defaults for language flags if not set by .zshrc.local
+# ── Defaults for ENABLE_* flags ──────────────────────────────────────────────
+# Language tooling (default: all on; --non-interactive / .zshrc.local override)
 [[ -z "$ENABLE_PYTHON" ]] && export ENABLE_PYTHON="yes"
 [[ -z "$ENABLE_RUST" ]] && export ENABLE_RUST="yes"
 [[ -z "$ENABLE_GO" ]] && export ENABLE_GO="yes"
 [[ -z "$ENABLE_NODE" ]] && export ENABLE_NODE="yes"
+
+# Shell features (defaults depend on Desktop vs Server)
+if [[ "$ZSH_ENV_TYPE" == "server" ]]; then
+    [[ -z "$ENABLE_ZCOLORS" ]]     && export ENABLE_ZCOLORS="no"
+    [[ -z "$ENABLE_WD" ]]          && export ENABLE_WD="no"
+    [[ -z "$ENABLE_ALIAS_TIPS" ]]  && export ENABLE_ALIAS_TIPS="no"
+    [[ -z "$ENABLE_Z" ]]           && export ENABLE_Z="no"
+    [[ -z "$ENABLE_PF" ]]          && export ENABLE_PF="no"
+    [[ -z "$ENABLE_SSH_AGENT" ]]   && export ENABLE_SSH_AGENT="no"
+    [[ -z "$ENABLE_NMAP" ]]        && export ENABLE_NMAP="yes"
+else
+    [[ -z "$ENABLE_ZCOLORS" ]]     && export ENABLE_ZCOLORS="yes"
+    [[ -z "$ENABLE_WD" ]]          && export ENABLE_WD="yes"
+    [[ -z "$ENABLE_ALIAS_TIPS" ]]  && export ENABLE_ALIAS_TIPS="yes"
+    [[ -z "$ENABLE_Z" ]]           && export ENABLE_Z="yes"
+    [[ -z "$ENABLE_PF" ]]          && export ENABLE_PF="yes"
+    [[ -z "$ENABLE_SSH_AGENT" ]]   && export ENABLE_SSH_AGENT="yes"
+    [[ -z "$ENABLE_NMAP" ]]        && export ENABLE_NMAP="no"
+fi
+[[ -z "$ENABLE_UPDATE_CHECK" ]] && export ENABLE_UPDATE_CHECK="yes"
 
 ########################################
 # ZSH Options
@@ -92,8 +113,8 @@ zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path "$XDG_CACHE_HOME/zsh/.zcompcache"
 zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
 zstyle ':completion:*:*:*:*:corrections' format '%F{yellow}!- %d (errors: %e) -!%f'
-zstyle ':completion:*:messages' format ' %F{purple} -- %d --%f'
-zstyle ':completion:*:warnings' format ' %F{red}-- no matches found --%f'
+zstyle ':completion:*:messages' format '%F{purple} -- %d --%f'
+zstyle ':completion:*:warnings' format '%F{red}-- no matches found --%f'
 zstyle ':completion:*:descriptions' format '%F{yellow}%B%d%b%f'
 zstyle ':completion:*' group-name ''
 zstyle ':completion:*:*:-command-:*:*' group-order alias builtins functions commands
@@ -110,35 +131,48 @@ ENABLE_CORRECTION="true"
 znap prompt
 
 ########################################
-# Plugins
+# Core Plugins (always loaded)
 ########################################
 znap source zdharma-continuum/fast-syntax-highlighting
 znap source zsh-users/zsh-autosuggestions
 znap source ohmyzsh/ohmyzsh plugins/git
 znap source ohmyzsh/ohmyzsh plugins/colored-man-pages
 
-# Server-specific network plugins
-if [[ "$ZSH_ENV_TYPE" == "server" ]]; then
+########################################
+# Feature-gated Plugins
+########################################
+
+# nmap completions (server mode)
+if [[ "$ENABLE_NMAP" == "yes" ]]; then
     znap source ohmyzsh/ohmyzsh plugins/nmap
 fi
 
-# Load heavier/non-essential plugins only on Desktop
+# Desktop plugins
 if [[ "$ZSH_ENV_TYPE" != "server" ]]; then
-    # zcolors: single plain `zcolors` script (no plugin.zsh), so `znap source`
-    # cannot handle it. It is a program: put it on PATH; the `znap eval` below
-    # runs `zcolors` and caches its output (which defines colors/functions).
-    export PATH="$ZSH_CONFIG_DIR/marlonrichert/zcolors:$PATH"
+    # zcolors: put on PATH; eval below caches its output.
+    if [[ "$ENABLE_ZCOLORS" == "yes" ]]; then
+        export PATH="$ZSH_CONFIG_DIR/marlonrichert/zcolors:$PATH"
+    fi
 
-    znap source mfaerevaag/wd
-    znap source djui/alias-tips
+    if [[ "$ENABLE_WD" == "yes" ]]; then
+        znap source mfaerevaag/wd
+    fi
+
+    if [[ "$ENABLE_ALIAS_TIPS" == "yes" ]]; then
+        znap source djui/alias-tips
+    fi
+
     if [[ "$ENABLE_PYTHON" == "yes" ]]; then
         znap source ohmyzsh/ohmyzsh plugins/virtualenvwrapper
     fi
-    znap source rupa/z
+
+    if [[ "$ENABLE_Z" == "yes" ]]; then
+        znap source rupa/z
+    fi
 fi
 
-# Evaluate zcolors (if loaded)
-if [[ "$ZSH_ENV_TYPE" != "server" ]]; then
+# Evaluate zcolors (if enabled)
+if [[ "$ENABLE_ZCOLORS" == "yes" ]]; then
     znap eval zcolors "zcolors ${(q)LS_COLORS}"
 fi
 
@@ -169,8 +203,8 @@ export LC_ALL="en_US.UTF-8"
 ########################################
 # Conditional loading based on environment
 ########################################
-# Only load paru/fzf helper on Desktop environments
-if [[ "$ZSH_ENV_TYPE" != "server" ]]; then
+# Package manager helper (pf)
+if [[ "$ENABLE_PF" == "yes" && "$ZSH_ENV_TYPE" != "server" ]]; then
     [ -f "$ZSH_CONFIG_DIR/.paru_fzf.zsh" ] && source "$ZSH_CONFIG_DIR/.paru_fzf.zsh"
 fi
 
@@ -178,7 +212,9 @@ fi
 [ -f ~/.config/.dart-cli-completion/zsh-config.zsh ] && source ~/.config/.dart-cli-completion/zsh-config.zsh
 
 # Background update check
-[ -f "$ZSH_CONFIG_DIR/.zsh_update.zsh" ] && source "$ZSH_CONFIG_DIR/.zsh_update.zsh"
+if [[ "$ENABLE_UPDATE_CHECK" == "yes" ]]; then
+    [ -f "$ZSH_CONFIG_DIR/.zsh_update.zsh" ] && source "$ZSH_CONFIG_DIR/.zsh_update.zsh"
+fi
 
 ########################################
 # Evals
@@ -186,14 +222,9 @@ fi
 
 
 ########################################
-# SSH Agent Management (Zsh Compatible)
-# - Starts ssh-agent if not already running
-# - Reuses environment across sessions
-# - Loads key only once to avoid repeated passphrase prompts
-# DISABLED on Server for security
+# SSH Agent Management
 ########################################
-
-if [[ "$ZSH_ENV_TYPE" != "server" ]]; then
+if [[ "$ENABLE_SSH_AGENT" == "yes" && "$ZSH_ENV_TYPE" != "server" ]]; then
 
 SSH_ENV="$HOME/.ssh/agent-environment"
 

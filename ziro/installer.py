@@ -36,6 +36,15 @@ class Options:
     enable_rust: bool | None = None
     enable_go: bool | None = None
     enable_node: bool | None = None
+    # Shell features
+    enable_zcolors: bool | None = None
+    enable_wd: bool | None = None
+    enable_alias_tips: bool | None = None
+    enable_z: bool | None = None
+    enable_pf: bool | None = None
+    enable_ssh_agent: bool | None = None
+    enable_update_check: bool | None = None
+    enable_nmap: bool | None = None
 
 
 LANG_PROMPTS = [
@@ -43,6 +52,18 @@ LANG_PROMPTS = [
     ("enable_rust", "Rust", "--with-rust/--no-rust", "ENABLE_RUST"),
     ("enable_go", "Go", "--with-go/--no-go", "ENABLE_GO"),
     ("enable_node", "Node.js", "--with-node/--no-node", "ENABLE_NODE"),
+]
+
+# (attr, label, env_key, desktop_default)
+FEATURE_PROMPTS = [
+    ("enable_zcolors", "zcolors (shell colors)", "ENABLE_ZCOLORS", True),
+    ("enable_wd", "wd (directory bookmarks)", "ENABLE_WD", True),
+    ("enable_alias_tips", "alias-tips (suggestions)", "ENABLE_ALIAS_TIPS", True),
+    ("enable_z", "z (smart cd)", "ENABLE_Z", True),
+    ("enable_pf", "pf (fzf package manager)", "ENABLE_PF", True),
+    ("enable_ssh_agent", "SSH agent (auto-load keys)", "ENABLE_SSH_AGENT", True),
+    ("enable_update_check", "Background update check", "ENABLE_UPDATE_CHECK", True),
+    ("enable_nmap", "nmap completions (server)", "ENABLE_NMAP", False),
 ]
 
 
@@ -72,6 +93,34 @@ def _resolve_language_flags(opts: Options) -> dict[str, str]:
     return values
 
 
+def _resolve_feature_flags(opts: Options) -> dict[str, str]:
+    """Ask about shell features (ssh-agent, zcolors, etc.).
+
+    Default is the desktop_default column; Server mode flips all to no.
+    --non-interactive uses the mode-aware default.
+    """
+    values: dict[str, str] = {}
+
+    ui.section("Shell features")
+    ui.info("Enable features you want; easy to toggle later in .zshrc.local")
+    for attr, label, env_key, desktop_default in FEATURE_PROMPTS:
+        val = getattr(opts, attr)
+        if val is None:
+            default = desktop_default if opts.mode != "Server" else False
+            if opts.non_interactive:
+                val = default
+            else:
+                val = ui.confirm(f"  {label}?", default_yes=default)
+            setattr(opts, attr, val)
+        values[env_key] = "yes" if val else "no"
+
+    for attr, label, env_key, desktop_default in FEATURE_PROMPTS:
+        val = getattr(opts, attr)
+        note = "" if val else f" (enable later: {env_key}=yes in .zshrc.local)"
+        ui.info(f"  {label}: {'yes' if val else 'no'}{note}")
+    return values
+
+
 def _persist_language_flags(config_dir: Path, values: dict[str, str]) -> None:
     """Merge ENABLE_* values into the user's .zshrc.local, preserving everything else.
 
@@ -80,7 +129,11 @@ def _persist_language_flags(config_dir: Path, values: dict[str, str]) -> None:
     ``command not found: rustup`` on every shell start when Rust is disabled.
     """
     local = config_dir / ".zshrc.local"
-    _STRIP_PREFIXES = ("ENABLE_PYTHON", "ENABLE_RUST", "ENABLE_GO", "ENABLE_NODE")
+    _ALL_ENABLE_KEYS = {
+        "ENABLE_PYTHON", "ENABLE_RUST", "ENABLE_GO", "ENABLE_NODE",
+        "ENABLE_ZCOLORS", "ENABLE_WD", "ENABLE_ALIAS_TIPS", "ENABLE_Z",
+        "ENABLE_PF", "ENABLE_SSH_AGENT", "ENABLE_UPDATE_CHECK", "ENABLE_NMAP",
+    }
     _LEGACY_STRIP = (
         "znap fpath _rustup 'rustup completions zsh'",
         "znap fpath _cargo 'rustup completions zsh cargo'",
@@ -89,7 +142,7 @@ def _persist_language_flags(config_dir: Path, values: dict[str, str]) -> None:
     if local.is_file():
         for line in local.read_text(encoding="utf-8", errors="replace").splitlines():
             key = line.strip().removeprefix("export ").split("=")[0].strip()
-            if key in _STRIP_PREFIXES:
+            if key in _ALL_ENABLE_KEYS:
                 continue
             if line.strip() in _LEGACY_STRIP:
                 continue
@@ -100,6 +153,16 @@ def _persist_language_flags(config_dir: Path, values: dict[str, str]) -> None:
         f"export ENABLE_RUST='{values.get('ENABLE_RUST', 'no')}'",
         f"export ENABLE_GO='{values.get('ENABLE_GO', 'no')}'",
         f"export ENABLE_NODE='{values.get('ENABLE_NODE', 'no')}'",
+        "",
+        "# Shell features (set by ziro install; edit freely)",
+        f"export ENABLE_ZCOLORS='{values.get('ENABLE_ZCOLORS', 'no')}'",
+        f"export ENABLE_WD='{values.get('ENABLE_WD', 'no')}'",
+        f"export ENABLE_ALIAS_TIPS='{values.get('ENABLE_ALIAS_TIPS', 'no')}'",
+        f"export ENABLE_Z='{values.get('ENABLE_Z', 'no')}'",
+        f"export ENABLE_PF='{values.get('ENABLE_PF', 'no')}'",
+        f"export ENABLE_SSH_AGENT='{values.get('ENABLE_SSH_AGENT', 'no')}'",
+        f"export ENABLE_UPDATE_CHECK='{values.get('ENABLE_UPDATE_CHECK', 'no')}'",
+        f"export ENABLE_NMAP='{values.get('ENABLE_NMAP', 'no')}'",
     ]
     local.write_text("\n".join(lines) + "\n")
 
@@ -134,6 +197,8 @@ def install(opts: Options) -> int:
 
     try:
         lang_values = _resolve_language_flags(opts)
+        feature_values = _resolve_feature_flags(opts)
+        all_values = {**lang_values, **feature_values}
         if not _install_deps(opts, plat):
             return 1
         try:
@@ -148,7 +213,7 @@ def install(opts: Options) -> int:
             return 1
         _install_cli(opts, config_dir)
         if not opts.dry_run:
-            _persist_language_flags(config_dir, lang_values)
+            _persist_language_flags(config_dir, all_values)
             _resolve_prompt_theme(opts, config_dir, {
                 "ENABLE_PYTHON": opts.enable_python is not False,
                 "ENABLE_RUST": opts.enable_rust is not False,

@@ -18,3 +18,13 @@ export ENABLE_PYTHON='yes'
 export ENABLE_RUST='yes'
 export ENABLE_GO='no'
 export ENABLE_NODE='yes'
+
+# Shell features (set by ziro install; edit freely)
+export ENABLE_ZCOLORS='yes'
+export ENABLE_WD='yes'
+export ENABLE_ALIAS_TIPS='yes'
+export ENABLE_Z='yes'
+export ENABLE_PF='yes'
+export ENABLE_SSH_AGENT='yes'
+export ENABLE_UPDATE_CHECK='yes'
+export ENABLE_NMAP='no'
