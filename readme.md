@@ -7,7 +7,7 @@ Ziro is a complete shell environment for developers and power users. It installs
 ## What it installs
 
 - Zsh with fast startup
-- [Starship](https://starship.rs/) prompt with built-in themes (`ziro theme list`)
+- [Starship](https://starship.rs/) prompt (static config; edit `~/.config/starship.toml` freely)
 - [zsh-snap](https://github.com/marlonrichert/zsh-snap) plugin manager
 - `fast-syntax-highlighting`, `zsh-autosuggestions`, `zsh-completions`
 - `pf` - interactive `fzf` package manager (supports pacman, brew, apt, dnf, apk, zypper)
@@ -91,8 +91,6 @@ ziro install --dry-run
 ziro update           # update Ziro
 ziro doctor           # check health
 ziro --version        # show version
-ziro theme list       # list available prompt themes
-ziro theme apply lambda  # apply a theme
 ```
 
 Requires Python 3.8 or later. Uses only the standard library (no pip dependencies).

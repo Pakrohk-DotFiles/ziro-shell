@@ -214,12 +214,7 @@ def install(opts: Options) -> int:
         _install_cli(opts, config_dir)
         if not opts.dry_run:
             _persist_language_flags(config_dir, all_values)
-            _resolve_prompt_theme(opts, config_dir, {
-                "ENABLE_PYTHON": opts.enable_python is not False,
-                "ENABLE_RUST": opts.enable_rust is not False,
-                "ENABLE_GO": opts.enable_go is not False,
-                "ENABLE_NODE": opts.enable_node is not False,
-            })
+        _install_starship_config(opts, config_dir)
         _create_local_config(opts, config_dir)
         _change_shell(opts, plat)
         _final_compile(opts, config_dir)
@@ -476,45 +471,27 @@ def _install_cli(opts: Options, config_dir: Path) -> None:
     ui.configured(f"~/.local/bin/ziro -> {src}")
 
 
-def _resolve_prompt_theme(opts: Options, config_dir: Path,
-                          lang_flags: dict[str, bool]) -> None:
-    """Ask about the prompt theme and apply it.
+def _install_starship_config(opts: Options, config_dir: Path) -> None:
+    """Copy the static starship.toml into ~/.config if not already present.
 
-    Asks only when ~/.config/starship.toml is missing or ziro-managed;
-    a user-owned config is never touched. --non-interactive applies the
-    default theme to a missing file, otherwise leaves things alone.
-    `lang_flags` are the resolved language flags for segment rendering.
+    Never overwrites an existing file — user edits survive installs and
+    updates. `ziro doctor` reports a missing config as a warning.
     """
-    from . import theme, themecmd
-
-    def write(name: str) -> None:
-        themecmd._write(name, lang_flags)  # noqa: SLF001
-
-    conf = themecmd.CONFIG_PATH
-    if conf.exists() and not theme.is_managed(conf):
-        ui.present("prompt theme (user-owned starship.toml preserved)")
+    ui.section("Prompt config")
+    conf = _home() / ".config" / "starship.toml"
+    if conf.exists():
+        ui.present("~/.config/starship.toml (preserved, user-owned)")
         return
-    if themecmd.migrate_legacy_theme(lang_flags):  # noqa: SLF001
+    if opts.dry_run:
+        ui.info(f"Would copy {config_dir / 'starship.toml'} -> {conf}")
         return
-    if opts.non_interactive:
-        if not conf.exists():
-            write(theme.DEFAULT_THEME)
-        else:
-            ui.present("prompt theme")
+    src = config_dir / "starship.toml"
+    if not src.is_file():
+        ui.skipped("starship.toml template missing; skipping")
         return
-
-    ui.section("Prompt theme")
-    current = themecmd._current_theme()  # noqa: SLF001
-    if current:
-        ui.info(f"Current theme: {current}")
-        if not ui.confirm("Change the prompt theme?", default_yes=False):
-            return
-    elif not ui.confirm("Customize the prompt theme?", default_yes=False):
-        ui.info("Default theme applied; change later with: ziro theme apply <name>")
-        write(theme.DEFAULT_THEME)
-        return
-    if themecmd._apply_interactive(lang_flags) != 0:  # noqa: SLF001
-        ui.warn("Theme not applied; run 'ziro theme list' to retry")
+    conf.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(src, conf)
+    ui.installed("~/.config/starship.toml (edit freely; ziro never overwrites)")
 
 
 def _create_local_config(opts: Options, config_dir: Path) -> None:
