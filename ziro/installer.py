@@ -418,6 +418,8 @@ def _resolve_prompt_theme(opts: Options, config_dir: Path,
     if conf.exists() and not theme.is_managed(conf):
         ui.present("prompt theme (user-owned starship.toml preserved)")
         return
+    if themecmd.migrate_legacy_theme(lang_flags):  # noqa: SLF001
+        return
     if opts.non_interactive:
         if not conf.exists():
             write(theme.DEFAULT_THEME)

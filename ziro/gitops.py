@@ -15,6 +15,12 @@ from .runner import capture, quiet, run
 
 REPO_URL = "https://github.com/Pakrohk-DotFiles/ziro-shell.git"
 REMOTE_HINT = "Pakrohk-DotFiles/ziro-shell"
+# Repos installed before the rename still point at these; accepted as Ziro,
+# and healed (re-pointed) automatically on update.
+LEGACY_REMOTE_HINTS = (
+    "Pakrohk-DotFiles/zsh_config",      # pre-rename origin
+    "Pakrohk-DotFiles/ziro",            # even older name
+)
 NEW_DIR = ".ziro"          # under HOME
 LEGACY_DIR = ".zsh_config"  # under HOME
 
@@ -38,8 +44,33 @@ def remote_origin_url(path: Path) -> str | None:
 
 
 def is_ziro_repo(path: Path) -> bool:
+    return origin_kind(path) is not None
+
+
+def origin_kind(path: Path) -> str | None:
+    """Classify origin: 'current', 'legacy', or None (not a Ziro repo)."""
     url = remote_origin_url(path)
-    return bool(url) and REMOTE_HINT in url
+    if not url:
+        return None
+    if REMOTE_HINT in url:
+        return "current"
+    if any(hint in url for hint in LEGACY_REMOTE_HINTS):
+        return "legacy"
+    return None
+
+
+def heal_origin(path: Path) -> bool:
+    """Re-point a pre-rename origin at the current repo URL.
+
+    True if the origin was healed (or already current).
+    """
+    if origin_kind(path) == "current":
+        return True
+    if origin_kind(path) != "legacy":
+        return False
+    run(["git", "-C", str(path), "remote", "set-url", "origin", REPO_URL])
+    ui.configured("origin -> Pakrohk-DotFiles/ziro-shell (repo was renamed)")
+    return True
 
 
 def has_uncommitted_changes(path: Path) -> bool:

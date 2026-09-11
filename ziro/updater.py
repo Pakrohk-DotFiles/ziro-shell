@@ -30,6 +30,7 @@ def update() -> int:
     if not gitops.is_ziro_repo(config_dir):
         ui.warn(f"Origin of {config_dir} is not the Ziro repository; refusing to update.")
         return 1
+    gitops.heal_origin(config_dir)
 
     ui.info("Updating Ziro...")
     try:
@@ -56,6 +57,7 @@ def update() -> int:
             return 1
 
         _recompile(config_dir)
+        _ensure_theme()
         _refresh_check_state(config_dir)
     except RunError as exc:
         report_failure(exc)
@@ -73,6 +75,12 @@ def _recompile(config_dir: Path) -> None:
     from .installer import ZSH_COMPILE_TARGETS, _final_compile, Options  # noqa: PLC0415
     opts = Options()
     _final_compile(opts, config_dir)
+
+
+def _ensure_theme() -> None:
+    """Migrate a pre-theme-system starship.toml to the current theme system."""
+    from . import themecmd  # noqa: PLC0415
+    themecmd.migrate_legacy_theme()
 
 
 def _refresh_check_state(config_dir: Path) -> None:

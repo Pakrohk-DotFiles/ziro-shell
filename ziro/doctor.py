@@ -174,8 +174,12 @@ def _check_plugins(config_dir: Path) -> Check:
 
 def _check_remote_origin(config_dir: Path) -> Check:
     url = gitops.remote_origin_url(config_dir)
-    if url and gitops.REMOTE_HINT in url:
+    kind = gitops.origin_kind(config_dir)
+    if kind == "current":
         return Check("remote origin", True, url)
+    if kind == "legacy":
+        return Check("remote origin", True,
+                     f"{url} (repo renamed; will auto-heal on next update)")
     return Check("remote origin", False,
                  f"{url or 'unknown'} (expected origin containing {gitops.REMOTE_HINT})")
 
