@@ -254,8 +254,6 @@ def _missing_packages(plat: platform_mod.Platform, pkgs: list[str]) -> list[str]
         return pkgs
     missing = []
     for pkg in pkgs:
-        if pkg == "starship" and shutil.which("starship"):
-            continue
         if not quiet(query + [pkg]):
             missing.append(pkg)
     return missing

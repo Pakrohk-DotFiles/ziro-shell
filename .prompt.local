@@ -1,30 +1,14 @@
 # ~/.prompt.local
-# Optimized Starship bootstrap and config with zsh-snap (znap) integration (based on latest GitHub)
+# Starship prompt bootstrap via znap.
+# Starship is installed by the system package manager (pacman/brew/apt/...);
+# this file only loads it into the shell. No curl installer — avoids
+# duplicate binaries in ~/.local/bin that shadow the system package.
 # Source this from ~/.zshrc: [ -f ~/.prompt.local ] && source ~/.prompt.local
 
-# 1) Add user-local bin to PATH (idempotent)
-[[ ":$PATH:" != *":$HOME/.local/bin:"* ]] && export PATH="$HOME/.local/bin:$PATH"
-
-# 2) Install Starship if not present (portable, no package manager required)
-ensure_starship() {
-  if command -v starship >/dev/null 2>&1; then
-    return 0
-  fi
-  echo "[prompt] Installing Starship to ~/.local/bin ..."
-  mkdir -p "$HOME/.local/bin"
-  if curl -fsSL https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"; then
-    echo "[prompt] Starship installed successfully"
-  else
-    echo "[prompt] Failed to install Starship. Please install it manually."
-    return 1
-  fi
-}
-ensure_starship
-
-# 3) Load Starship with znap eval (caches output for speed)
+# Load Starship with znap eval (caches output for speed)
 znap eval starship 'starship init zsh --print-full-init'
 
-# 4) starship.toml is managed by ziro
+# starship.toml is managed by ziro
 # Pick a theme with `ziro theme list` / `ziro theme apply <name>`.
 # A user-managed starship.toml (no ziro marker) is never touched.
 
