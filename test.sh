@@ -273,6 +273,21 @@ run_test_check "update-preserves-user-theme" 0 "$TMP" \
 rm -rf "$TMP"
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 14. Untrack legacy-tracked .zshrc.local — file kept on disk, no longer in git
+# ═══════════════════════════════════════════════════════════════════════════════
+echo "=== 14. Untrack .zshrc.local ==="
+TMP=$(mktemp -d /tmp/opencode/ziro-14-XXXX)
+cp -r "$REPO" "$TMP/.ziro"
+rm -f "$TMP/.ziro/.zshrc.local"
+printf 'export EDITOR=vim\n' > "$TMP/.ziro/.zshrc.local"
+git -C "$TMP/.ziro" add -f .zshrc.local
+git -C "$TMP/.ziro" -c user.email=t@t -c user.name=t commit -qm "track local"
+run_test_check "update-untracks-zshrc-local" 0 "$TMP" \
+    'grep -q "EDITOR=vim" "$HOME/.ziro/.zshrc.local" && ! git -C "$HOME/.ziro" ls-files --error -- .zshrc.local 2>/dev/null' \
+    "$PY" "$ENGINE" update
+rm -rf "$TMP"
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Summary
 # ═══════════════════════════════════════════════════════════════════════════════
 echo ""

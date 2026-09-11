@@ -103,6 +103,22 @@ def pull_ff_only(path: Path) -> bool:
     return quiet(["git", "-C", str(path), "pull", "--ff-only"])
 
 
+def untrack_zshrc_local(path: Path) -> bool:
+    """Stop tracking .zshrc.local if an old repo version still tracks it.
+
+    The file is machine-local; it shipped tracked by mistake. Untracking
+    keeps the user's on-disk copy intact. True if untracked now.
+    """
+    if not is_repo(path):
+        return False
+    tracked = quiet(["git", "-C", str(path), "ls-files", "--error", "--", ".zshrc.local"])
+    if not tracked:
+        return True
+    run(["git", "-C", str(path), "rm", "--cached", "-q", "--", ".zshrc.local"])
+    ui.configured(".zshrc.local untracked (machine-local file; your copy is untouched)")
+    return True
+
+
 def fetch(path: Path, ref: str = "origin main") -> bool:
     return quiet(["git", "-C", str(path), "fetch", "-q"] + ref.split())
 

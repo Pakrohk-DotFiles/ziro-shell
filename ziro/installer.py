@@ -273,6 +273,7 @@ def _sync_config(opts: Options) -> Path | None:
             ui.info(f"Would pull latest into {config_dir}")
         elif gitops.pull_ff_only(config_dir):
             ui.updated("configuration repository")
+            gitops.untrack_zshrc_local(config_dir)
         else:
             ui.warn("git pull failed; using existing copy")
     else:
@@ -450,6 +451,12 @@ def _create_local_config(opts: Options, config_dir: Path) -> None:
     if opts.dry_run:
         ui.info("Would create .zshrc.local")
         return
+    if not local.is_file():
+        example = config_dir / ".zshrc.local.example"
+        if example.is_file():
+            shutil.copyfile(example, local)
+            ui.installed(".zshrc.local (from .zshrc.local.example)")
+            return
     env_type = "server" if opts.mode == "Server" else "desktop"
     editor = "vim" if env_type == "server" else "nvim"
     content = (

@@ -11,6 +11,9 @@
 /djui/
 /rupa/
 
+# Machine-local overrides (never commit; ships .example only)
+/.zshrc.local
+
 # Runtime state
 .last_update_check
 .update_available

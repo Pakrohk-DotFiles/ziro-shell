@@ -41,6 +41,7 @@ def update() -> int:
         ui.info("Pulling latest updates from repository...")
         if gitops.pull_ff_only(config_dir):
             ui.updated("Ziro repository")
+            gitops.untrack_zshrc_local(config_dir)
 
             if stashed:
                 ui.info("Re-applying your local changes...")

@@ -1,8 +1,0 @@
-# Lazy-load completions
-znap fpath _rustup 'rustup completions zsh'
-znap fpath _cargo 'rustup completions zsh cargo'
-
-# Load kitty config if it exists
-[[ -f ~/.config/kitty/kitty_config.sh ]] && source ~/.config/kitty/kitty_config.sh
-
-
