@@ -294,6 +294,80 @@ run_test_check "update-untracks-zshrc-local" 0 "$TMP" \
 rm -rf "$TMP"
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 15. Arch/macOS Python dependency regression — python-virtualenvwrapper
+#     must NOT appear in system package lists (not a pacman/brew package)
+# ═══════════════════════════════════════════════════════════════════════════════
+echo "=== 15. Python package regression ==="
+
+# 15a. Arch with Python enabled: no virtualenvwrapper in system packages
+TOTAL=$((TOTAL + 1))
+arch_base=$($PY -c "
+from ziro.packages import packages_for
+from ziro.platform import Platform
+p = Platform(os_name='Arch', pkg_mgr='pacman')
+base, _ = packages_for(p, 'Desktop', True, True, True, True)
+print('\n'.join(base))
+" 2>/dev/null)
+if echo "$arch_base" | grep -q "python-virtualenvwrapper"; then
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - arch-no-virtualenvwrapper (python-virtualenvwrapper found in Arch packages)\n"
+    echo "[FAIL] arch-no-virtualenvwrapper — python-virtualenvwrapper in Arch base"
+else
+    PASSED=$((PASSED + 1)); echo "[PASS] arch-no-virtualenvwrapper"
+fi
+
+# 15b. macOS with Python enabled: no virtualenvwrapper in system packages
+TOTAL=$((TOTAL + 1))
+mac_base=$($PY -c "
+from ziro.packages import packages_for
+from ziro.platform import Platform
+p = Platform(os_name='macOS', pkg_mgr='brew')
+base, _ = packages_for(p, 'Desktop', True, True, True, True)
+print('\n'.join(base))
+" 2>/dev/null)
+if echo "$mac_base" | grep -q "python-virtualenvwrapper"; then
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - mac-no-virtualenvwrapper (python-virtualenvwrapper found in macOS packages)\n"
+    echo "[FAIL] mac-no-virtualenvwrapper — python-virtualenvwrapper in macOS base"
+else
+    PASSED=$((PASSED + 1)); echo "[PASS] mac-no-virtualenvwrapper"
+fi
+
+# 15c. Arch with --no-python: no python in system packages
+TOTAL=$((TOTAL + 1))
+arch_nopy=$($PY -c "
+from ziro.packages import packages_for
+from ziro.platform import Platform
+p = Platform(os_name='Arch', pkg_mgr='pacman')
+base, _ = packages_for(p, 'Desktop', False, True, True, True)
+print('\n'.join(base))
+" 2>/dev/null)
+if echo "$arch_nopy" | grep -qw "python"; then
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - arch-no-python (python found with --no-python)\n"
+    echo "[FAIL] arch-no-python — python in Arch base despite --no-python"
+else
+    PASSED=$((PASSED + 1)); echo "[PASS] arch-no-python"
+fi
+
+# 15d. Debian/Ubuntu still has correct packages (no regression)
+TOTAL=$((TOTAL + 1))
+deb_base=$($PY -c "
+from ziro.packages import packages_for
+from ziro.platform import Platform
+p = Platform(os_name='Debian/Ubuntu', pkg_mgr='apt')
+base, _ = packages_for(p, 'Desktop', True, True, True, True)
+print('\n'.join(base))
+" 2>/dev/null)
+if echo "$deb_base" | grep -q "python3-venv" && ! echo "$deb_base" | grep -q "python-virtualenvwrapper"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] debian-python-packages"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - debian-python-packages (expected python3-venv, no python-virtualenvwrapper)\n"
+    echo "[FAIL] debian-python-packages"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Summary
 # ═══════════════════════════════════════════════════════════════════════════════
 echo ""
