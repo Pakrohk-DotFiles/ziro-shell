@@ -484,11 +484,11 @@ def _install_starship_config(opts: Options, config_dir: Path) -> None:
         ui.present("~/.config/starship.toml (preserved, user-owned)")
         return
     if opts.dry_run:
-        ui.info(f"Would copy {config_dir / 'themes' / 'lambda' / 'Starship.toml'} -> {conf}")
+        ui.info(f"Would copy default theme (themes/{themes.DEFAULT_THEME}) -> {conf}")
         return
     src = themes.theme_file(config_dir, themes.DEFAULT_THEME)
-    if src is None:
-        ui.skipped("no default theme package (themes/lambda) found; skipping")
+    if src is None or themes.DEFAULT_THEME not in themes.list_themes(config_dir):
+        ui.skipped(f"no valid default theme package (themes/{themes.DEFAULT_THEME}); skipping")
         return
     conf.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(src, conf)

@@ -388,7 +388,37 @@ else
     echo "[FAIL] schema-reject-invalid-starship-toml"
 fi
 
+# 12b-k. Non-semver version → rejected
+mkdir -p "$TMP/.ziro/themes/badver"
+printf '[theme]\nname = "badver"\nversion = "latest"\ndescription = "bad"\nauthor = "test"\nlicense = "MIT"\n' > "$TMP/.ziro/themes/badver/Theme.toml"
+printf 'add_newline = true\n' > "$TMP/.ziro/themes/badver/Starship.toml"
+TOTAL=$((TOTAL + 1))
+if ! HOME="$TMP" "$PY" "$ENGINE" theme list 2>/dev/null | grep -q "badver"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] schema-reject-bad-version"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - schema-reject-bad-version\n"
+    echo "[FAIL] schema-reject-bad-version"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 12c. Install must NOT copy an invalid default theme to ~/.config/starship.toml
+#      (theme_file is weak; the strict list_themes gate must reject a broken
+#       lambda Starship.toml instead of installing it.)
+# ═══════════════════════════════════════════════════════════════════════════════
+echo "=== 12c. install rejects broken default theme ==="
+TMP=$(mktemp -d /tmp/opencode/ziro-12c-XXXX)
+mkdir -p "$TMP/.ziro/themes/lambda"
+cp "$REPO/.zshrc" "$REPO/.zsh_aliases" "$REPO/.gitignore" "$TMP/.ziro/" 2>/dev/null
+[ -d "$REPO/znap" ] && cp -r "$REPO/znap" "$TMP/.ziro/"
+printf '[theme]\nname = "lambda"\nversion = "1.0.0"\ndescription = "broken"\nauthor = "test"\nlicense = "MIT"\n' > "$TMP/.ziro/themes/lambda/Theme.toml"
+printf 'this is not { valid toml' > "$TMP/.ziro/themes/lambda/Starship.toml"
+git -C "$TMP/.ziro" init -q 2>/dev/null
+run_test_check "install-skips-broken-default-theme" 0 "$TMP" \
+    '! test -e "$HOME/.config/starship.toml"' \
+    "$PY" "$ENGINE" install --non-interactive --skip-deps --skip-shell
 rm -rf "$TMP"
+
 # ═══════════════════════════════════════════════════════════════════════════════
 echo "=== 13. Untrack .zshrc.local ==="
 TMP=$(mktemp -d /tmp/opencode/ziro-14-XXXX)

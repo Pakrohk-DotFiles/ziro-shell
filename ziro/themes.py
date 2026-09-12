@@ -11,6 +11,7 @@ overwrites a user-owned config unless the user confirms via --force
 or the existing file is identical to the theme being applied.
 """
 
+import re
 import shutil
 import tomllib
 from dataclasses import dataclass
@@ -35,6 +36,8 @@ class ThemePackage:
 
 REQUIRED_THEME_FIELDS = {"name", "version", "description", "author", "license"}
 
+_SEMVER_RE = re.compile(r'^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?(\+[a-zA-Z0-9.]+)?$')
+
 
 def themes_root(config_dir: Path) -> Path:
     return config_dir / THEMES_DIR
@@ -50,6 +53,8 @@ def _validate_theme(data: dict) -> ThemePackage | None:
     for field in ("name", "version", "description", "author", "license"):
         if not isinstance(t.get(field), str) or not t[field]:
             return None
+    if not _SEMVER_RE.match(t["version"]):
+        return None
     return ThemePackage(
         name=t["name"],
         version=t["version"],
