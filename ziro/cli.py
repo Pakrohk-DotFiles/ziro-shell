@@ -1,4 +1,4 @@
-"""CLI entry: ziro install | update | doctor | --version"""
+"""CLI entry: ziro install | update | doctor | theme | --version"""
 
 import argparse
 import sys
@@ -81,6 +81,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_install.add_argument("--no-nmap", dest="enable_nmap", action="store_false",
                            help="disable nmap completions (skip prompt)")
 
+    p_theme = sub.add_parser("theme", help="list or apply prompt theme packages")
+    p_theme_sub = p_theme.add_subparsers(dest="theme_command")
+    p_theme_sub.add_parser("list", help="list available theme packages")
+    p_theme_sub.add_parser("current", help="show which theme is applied")
+    p_apply = p_theme_sub.add_parser("apply", help="apply a theme package")
+    p_apply.add_argument("name", nargs="?", help="theme name (see: ziro theme list)")
+    p_apply.add_argument("--force", action="store_true",
+                         help="overwrite an existing ~/.config/starship.toml")
+
     sub.add_parser("update", help="update Ziro to the latest version")
     sub.add_parser("doctor", help="check installation health")
     return parser
@@ -123,6 +132,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "update":
         from .updater import update
         return update()
+
+    if args.command == "theme":
+        from . import gitops, themes
+        return themes.run(gitops.resolve_config_dir(), args.theme_command,
+                          getattr(args, "name", None),
+                          getattr(args, "force", False))
 
     if args.command == "doctor":
         from .doctor import doctor

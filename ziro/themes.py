@@ -1,0 +1,122 @@
+"""Theme packages: discover and apply external starship.toml themes.
+
+A theme package is a directory under themes/<name>/ containing:
+  theme.toml     - metadata: name, description
+  starship.toml  - the prompt config
+
+`ziro theme list` shows available packages; `ziro theme apply <name>`
+copies its starship.toml to ~/.config/starship.toml. Apply never
+overwrites a user-owned config unless the user confirms via --force
+or the existing file is identical to the theme being applied.
+"""
+
+import shutil
+import tomllib
+from pathlib import Path
+
+from . import ui
+
+THEMES_DIR = "themes"
+DEFAULT_THEME = "lambda"
+CONFIG_PATH = Path.home() / ".config" / "starship.toml"
+
+
+def themes_root(config_dir: Path) -> Path:
+    return config_dir / THEMES_DIR
+
+
+def list_themes(config_dir: Path) -> dict[str, str]:
+    """Return {name: description} for every valid theme package."""
+    root = themes_root(config_dir)
+    if not root.is_dir():
+        return {}
+    found: dict[str, str] = {}
+    for pkg in sorted(root.iterdir()):
+        if not pkg.is_dir():
+            continue
+        meta = pkg / "theme.toml"
+        starship = pkg / "starship.toml"
+        if not meta.is_file() or not starship.is_file():
+            continue
+        name = pkg.name
+        description = ""
+        try:
+            data = tomllib.loads(meta.read_text(encoding="utf-8"))
+            name = data.get("name", pkg.name)
+            description = data.get("description", "")
+        except (OSError, tomllib.TOMLDecodeError):
+            pass
+        found[name] = description
+    return found
+
+
+def theme_file(config_dir: Path, name: str) -> Path | None:
+    """Path to a theme package's starship.toml, or None if missing."""
+    for pkg_name, _ in list_themes(config_dir).items():
+        pass
+    # list_themes may remap name via theme.toml; resolve by dir too.
+    pkg = themes_root(config_dir) / name
+    starship = pkg / "starship.toml"
+    if (pkg / "theme.toml").is_file() and starship.is_file():
+        return starship
+    return None
+
+
+def apply(config_dir: Path, name: str, force: bool = False) -> int:
+    """Apply a theme package to ~/.config/starship.toml."""
+    themes = list_themes(config_dir)
+    if name not in themes:
+        ui.error(f"unknown theme '{name}'. Available: {', '.join(themes) or 'none'}")
+        return 2
+    src = theme_file(config_dir, name)
+    if src is None:
+        ui.error(f"theme '{name}' is missing starship.toml")
+        return 1
+    if CONFIG_PATH.exists() and not force:
+        if CONFIG_PATH.read_bytes() == src.read_bytes():
+            ui.present(f"~/.config/starship.toml already uses theme '{name}'")
+            return 0
+        ui.error(f"{CONFIG_PATH} exists and differs from theme '{name}'.")
+        ui.info("Remove it or run: ziro theme apply " + name + " --force")
+        return 1
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(src, CONFIG_PATH)
+    ui.configured(f"~/.config/starship.toml -> theme '{name}'")
+    ui.info("restart your terminal or run: source ~/.zshrc")
+    return 0
+
+
+def run(config_dir: Path, command: str | None, name: str | None,
+        force: bool = False) -> int:
+    """Entry for `ziro theme <list|current|apply>`."""
+    if command == "list":
+        themes = list_themes(config_dir)
+        if not themes:
+            ui.info(f"no theme packages in {themes_root(config_dir)}")
+            return 0
+        for tname, desc in themes.items():
+            marker = " (default)" if tname == DEFAULT_THEME else ""
+            ui.info(f"{tname}{marker}: {desc}" if desc else f"{tname}{marker}")
+        return 0
+
+    if command == "current":
+        if not CONFIG_PATH.is_file():
+            ui.info("no starship.toml installed")
+            return 1
+        for tname in list_themes(config_dir):
+            src = theme_file(config_dir, tname)
+            if src and CONFIG_PATH.read_bytes() == src.read_bytes():
+                ui.info(f"theme '{tname}' (or user-modified copy)")
+                return 0
+        ui.info("user-owned config (no theme match)")
+        return 0
+
+    if command == "apply":
+        if not name:
+            themes = list_themes(config_dir)
+            ui.error(f"usage: ziro theme apply <name>. Available: {', '.join(themes) or 'none'}")
+            return 2
+        return apply(config_dir, name, force)
+
+    ui.error("unknown theme command: " + (command or ""))
+    return 2

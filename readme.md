@@ -7,7 +7,7 @@ Ziro is a complete shell environment for developers and power users. It installs
 ## What it installs
 
 - Zsh with fast startup
-- [Starship](https://starship.rs/) prompt (static config; edit `~/.config/starship.toml` freely)
+- [Starship](https://starship.rs/) prompt with theme packages (`ziro theme list`; edit `~/.config/starship.toml` freely)
 - [zsh-snap](https://github.com/marlonrichert/zsh-snap) plugin manager
 - `fast-syntax-highlighting`, `zsh-autosuggestions`, `zsh-completions`
 - `pf` - interactive `fzf` package manager (supports pacman, brew, apt, dnf, apk, zypper)
@@ -90,6 +90,8 @@ ziro install          # install or repair
 ziro install --dry-run
 ziro update           # update Ziro
 ziro doctor           # check health
+ziro theme list       # list available theme packages
+ziro theme apply lambda  # apply a theme package
 ziro --version        # show version
 ```
 
@@ -120,6 +122,7 @@ Server mode disables SSH agent management, installs only essential plugins, and 
 |---|---|
 | `.zshrc` | Main entry point. Handles znap bootstrap, options, and sources all other files. Symlinked from `~/.zshrc`. |
 | `.prompt.local` | Loads Starship into the shell via znap. Starship itself comes from your package manager. |
+| `themes/` | Theme packages. Each is a directory with `theme.toml` (metadata) and `starship.toml` (prompt config). |
 | `.zsh_aliases` | Curated aliases and functions. |
 | `.paru_fzf.zsh` | Interactive package manager (`pf` command). |
 | `.zshrc.local` | Your machine-specific settings. Never overwritten by the installer. |
@@ -140,6 +143,21 @@ export BROWSER='firefox'
 ```
 
 The installer never modifies `.zshrc.local` if it already exists. Your Starship configuration (`~/.config/starship.toml`) is also preserved if you customize it.
+
+### Theme packages
+
+Prompt configs live in `themes/<name>/` as self-contained packages:
+
+```
+themes/
+└── lambda/
+    ├── theme.toml      # name + description
+    └── starship.toml   # the prompt config
+```
+
+- `ziro install` copies the default theme (`lambda`) to `~/.config/starship.toml` on first install.
+- `ziro theme apply <name>` switches themes. It refuses to overwrite a config that differs from the target theme; add `--force` to overwrite anyway.
+- `ziro theme list` shows available packages.
 
 ### Key aliases and functions
 

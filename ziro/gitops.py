@@ -25,6 +25,26 @@ NEW_DIR = ".ziro"          # under HOME
 LEGACY_DIR = ".zsh_config"  # under HOME
 
 
+def resolve_config_dir(home: Path | None = None) -> Path:
+    """Return the Ziro config dir (the git repo itself).
+
+    Checks ~/.ziro, ~/.zsh_config, then the directory this engine lives
+    in (covers running from a checkout).  Falls back to ~/.ziro.
+    """
+    if home is None:
+        home = Path.home()
+    new = home / NEW_DIR
+    if is_repo(new):
+        return new
+    legacy = home / LEGACY_DIR
+    if is_repo(legacy):
+        return legacy
+    repo_root = Path(__file__).resolve().parent.parent
+    if is_repo(repo_root):
+        return repo_root
+    return new
+
+
 def git_available() -> bool:
     return shutil.which("git") is not None
 

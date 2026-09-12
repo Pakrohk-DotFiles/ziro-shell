@@ -64,21 +64,8 @@ def doctor() -> int:
 
 
 def _resolve_config_dir(home: Path) -> Path:
-    """The Ziro config dir is the repository itself.
-
-    Prefer the user's installed locations (~/.ziro, ~/.zsh_config), then
-    the directory this engine lives in (covers running from a checkout).
-    """
-    new = home / gitops.NEW_DIR
-    if gitops.is_repo(new):
-        return new
-    legacy = home / gitops.LEGACY_DIR
-    if gitops.is_repo(legacy):
-        return legacy
-    repo_root = Path(__file__).resolve().parent.parent
-    if gitops.is_repo(repo_root):
-        return repo_root
-    return new
+    """The Ziro config dir is the repository itself."""
+    return gitops.resolve_config_dir(home)
 
 
 # ── checks ───────────────────────────────────────────────────────────────────

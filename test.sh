@@ -57,7 +57,7 @@ seed_repo() {
     cp "$REPO/.zshrc" "$d/"
     cp "$REPO/.zsh_aliases" "$d/"
     cp "$REPO/.gitignore" "$d/"
-    cp "$REPO/starship.toml" "$d/"
+    cp -r "$REPO/themes" "$d/"
     if [ -d "$REPO/znap" ]; then
         cp -r "$REPO/znap" "$d/"
     fi
@@ -216,27 +216,43 @@ run_test "legacy-doctor" 1 "$TMP" "$PY" "$ENGINE" doctor
 rm -rf "$TMP"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 12. Static starship.toml — install copies template, preserves user file
+# 12. Theme packages — install copies default, list/current/apply work
 # ═══════════════════════════════════════════════════════════════════════════════
-echo "=== 12. Static starship.toml ==="
+echo "=== 12. Theme packages ==="
 TMP=$(mktemp -d /tmp/opencode/ziro-12-XXXX)
 seed_repo "$TMP/.ziro"
-run_test_check "install-copies-starship" 0 "$TMP" \
+run_test_check "install-copies-default-theme" 0 "$TMP" \
     'test -f "$HOME/.config/starship.toml" && grep -q "Ziro starship prompt config" "$HOME/.config/starship.toml"' \
     "$PY" "$ENGINE" install --non-interactive --skip-deps --skip-shell
-# user-owned file preserved (not overwritten by second install)
+run_test "theme-list" 0 "$TMP" "$PY" "$ENGINE" theme list
+# lambda must appear in the list
 TOTAL=$((TOTAL + 1))
-mkdir -p "$TMP/.config"
-printf '# my custom config\n' > "$TMP/.config/starship.toml"
-actual_rc=0
-HOME="$TMP" "$PY" "$ENGINE" install --non-interactive --skip-deps --skip-shell >/dev/null 2>&1 || actual_rc=$?
-if [ "$actual_rc" -eq 0 ] && grep -q "my custom config" "$TMP/.config/starship.toml"; then
-    PASSED=$((PASSED + 1)); echo "[PASS] starship-user-file-preserved"
+if HOME="$TMP" "$PY" "$ENGINE" theme list 2>/dev/null | grep -q "lambda"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] theme-list-shows-lambda"
 else
     FAILED=$((FAILED + 1))
-    ERRORS="${ERRORS}  - starship-user-file-preserved\n"
-    echo "[FAIL] starship-user-file-preserved"
+    ERRORS="${ERRORS}  - theme-list-shows-lambda\n"
+    echo "[FAIL] theme-list-shows-lambda"
 fi
+run_test "theme-current" 0 "$TMP" "$PY" "$ENGINE" theme current
+run_test "theme-apply-lambda" 0 "$TMP" "$PY" "$ENGINE" theme apply lambda
+run_test "theme-apply-unknown" 2 "$TMP" "$PY" "$ENGINE" theme apply bogus
+# apply must refuse to clobber a differing user-owned file (rc=1, file intact)
+TOTAL=$((TOTAL + 1))
+printf '# my custom config\n' > "$TMP/.config/starship.toml"
+actual_rc=0
+HOME="$TMP" "$PY" "$ENGINE" theme apply lambda >/dev/null 2>&1 || actual_rc=$?
+if [ "$actual_rc" -eq 1 ] && grep -q "my custom config" "$TMP/.config/starship.toml"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] theme-protect-user-file"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - theme-protect-user-file\n"
+    echo "[FAIL] theme-protect-user-file"
+fi
+# --force overwrites
+run_test_check "theme-apply-force" 0 "$TMP" \
+    'grep -q "Ziro starship prompt config" "$HOME/.config/starship.toml"' \
+    "$PY" "$ENGINE" theme apply lambda --force
 rm -rf "$TMP"
 
 # ═══════════════════════════════════════════════════════════════════════════════

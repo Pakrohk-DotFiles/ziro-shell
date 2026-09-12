@@ -11,7 +11,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import gitops, packages, platform as platform_mod, ui
+from . import gitops, packages, platform as platform_mod, themes, ui
 from .runner import RunError, capture, quiet, report_failure, run, sudo_prefix
 
 MANAGED_CONFIGS = ["zshrc", "zimrc", "zpreztorc", "zprofile", "zshenv"]
@@ -472,10 +472,11 @@ def _install_cli(opts: Options, config_dir: Path) -> None:
 
 
 def _install_starship_config(opts: Options, config_dir: Path) -> None:
-    """Copy the static starship.toml into ~/.config if not already present.
+    """Copy the default theme's starship.toml into ~/.config if not already present.
 
     Never overwrites an existing file — user edits survive installs and
     updates. `ziro doctor` reports a missing config as a warning.
+    Default theme package: themes/lambda (see `ziro theme apply <name>`).
     """
     ui.section("Prompt config")
     conf = _home() / ".config" / "starship.toml"
@@ -483,11 +484,11 @@ def _install_starship_config(opts: Options, config_dir: Path) -> None:
         ui.present("~/.config/starship.toml (preserved, user-owned)")
         return
     if opts.dry_run:
-        ui.info(f"Would copy {config_dir / 'starship.toml'} -> {conf}")
+        ui.info(f"Would copy {config_dir / 'themes' / 'lambda' / 'starship.toml'} -> {conf}")
         return
-    src = config_dir / "starship.toml"
-    if not src.is_file():
-        ui.skipped("starship.toml template missing; skipping")
+    src = themes.theme_file(config_dir, themes.DEFAULT_THEME)
+    if src is None:
+        ui.skipped("no default theme package (themes/lambda) found; skipping")
         return
     conf.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(src, conf)
