@@ -323,6 +323,32 @@ else
     echo "[FAIL] schema-reject-missing-starship"
 fi
 
+# 12b-f. Missing author → rejected
+mkdir -p "$TMP/.ziro/themes/bad5"
+printf '[theme]\nname = "bad5"\nversion = "1.0.0"\ndescription = "bad"\nlicense = "MIT"\n' > "$TMP/.ziro/themes/bad5/Theme.toml"
+touch "$TMP/.ziro/themes/bad5/Starship.toml"
+TOTAL=$((TOTAL + 1))
+if ! HOME="$TMP" "$PY" "$ENGINE" theme list 2>/dev/null | grep -q "bad5"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] schema-reject-missing-author"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - schema-reject-missing-author\n"
+    echo "[FAIL] schema-reject-missing-author"
+fi
+
+# 12b-g. Missing license → rejected
+mkdir -p "$TMP/.ziro/themes/bad6"
+printf '[theme]\nname = "bad6"\nversion = "1.0.0"\ndescription = "bad"\nauthor = "test"\n' > "$TMP/.ziro/themes/bad6/Theme.toml"
+touch "$TMP/.ziro/themes/bad6/Starship.toml"
+TOTAL=$((TOTAL + 1))
+if ! HOME="$TMP" "$PY" "$ENGINE" theme list 2>/dev/null | grep -q "bad6"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] schema-reject-missing-license"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - schema-reject-missing-license\n"
+    echo "[FAIL] schema-reject-missing-license"
+fi
+
 rm -rf "$TMP"
 
 # ═══════════════════════════════════════════════════════════════════════════════

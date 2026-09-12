@@ -1,7 +1,8 @@
 """Theme packages: discover and apply external starship.toml themes.
 
 A theme package is a directory under themes/<name>/ containing:
-  Theme.toml     - metadata: [theme] section with name, version, description
+  Theme.toml     - metadata: [theme] section with name, version, description,
+                   author, license (all required)
   Starship.toml  - the prompt config
 
 `ziro theme list` shows available packages; `ziro theme apply <name>`
@@ -28,11 +29,11 @@ class ThemePackage:
     name: str
     version: str
     description: str
-    author: str = ""
-    license: str = ""
+    author: str
+    license: str
 
 
-REQUIRED_THEME_FIELDS = {"name", "version", "description"}
+REQUIRED_THEME_FIELDS = {"name", "version", "description", "author", "license"}
 
 
 def themes_root(config_dir: Path) -> Path:
@@ -46,18 +47,15 @@ def _validate_theme(data: dict) -> ThemePackage | None:
     t = data["theme"]
     if not REQUIRED_THEME_FIELDS.issubset(t.keys()):
         return None
-    if not isinstance(t["name"], str) or not t["name"]:
-        return None
-    if not isinstance(t["version"], str) or not t["version"]:
-        return None
-    if not isinstance(t["description"], str):
-        return None
+    for field in ("name", "version", "description", "author", "license"):
+        if not isinstance(t.get(field), str) or not t[field]:
+            return None
     return ThemePackage(
         name=t["name"],
         version=t["version"],
         description=t["description"],
-        author=t.get("author", ""),
-        license=t.get("license", ""),
+        author=t["author"],
+        license=t["license"],
     )
 
 
@@ -66,7 +64,8 @@ def list_themes(config_dir: Path) -> dict[str, ThemePackage]:
 
     A valid package must have both Theme.toml and Starship.toml.
     Theme.toml must contain a [theme] section with required fields:
-    name, version, description. Packages missing any of these are skipped.
+    name, version, description, author, license. Packages missing any
+    of these are skipped.
     """
     root = themes_root(config_dir)
     if not root.is_dir():
