@@ -349,10 +349,18 @@ else
     echo "[FAIL] schema-reject-missing-license"
 fi
 
-rm -rf "$TMP"
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 13. Untrack legacy-tracked .zshrc.local — file kept on disk, no longer in git
+# 12b-h. Name mismatch (Theme.toml name != directory name) → rejected
+mkdir -p "$TMP/.ziro/themes/mismatch"
+printf '[theme]\nname = "somethingelse"\nversion = "1.0.0"\ndescription = "mismatch"\nauthor = "test"\nlicense = "MIT"\n' > "$TMP/.ziro/themes/mismatch/Theme.toml"
+touch "$TMP/.ziro/themes/mismatch/Starship.toml"
+TOTAL=$((TOTAL + 1))
+if ! HOME="$TMP" "$PY" "$ENGINE" theme list 2>/dev/null | grep -q "somethingelse"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] schema-reject-name-mismatch"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - schema-reject-name-mismatch\n"
+    echo "[FAIL] schema-reject-name-mismatch"
+fi
 # ═══════════════════════════════════════════════════════════════════════════════
 echo "=== 13. Untrack .zshrc.local ==="
 TMP=$(mktemp -d /tmp/opencode/ziro-14-XXXX)

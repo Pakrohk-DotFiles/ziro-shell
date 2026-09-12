@@ -11,6 +11,7 @@ overwrites a user-owned config unless the user confirms via --force
 or the existing file is identical to the theme being applied.
 """
 
+import re
 import shutil
 import tomllib
 from dataclasses import dataclass
@@ -82,6 +83,8 @@ def list_themes(config_dir: Path) -> dict[str, ThemePackage]:
             data = tomllib.loads(meta.read_text(encoding="utf-8"))
             parsed = _validate_theme(data)
             if parsed is None:
+                continue
+            if parsed.name != pkg.name:
                 continue
             found[parsed.name] = parsed
         except (OSError, tomllib.TOMLDecodeError):
