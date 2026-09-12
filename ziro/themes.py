@@ -1,7 +1,7 @@
 """Theme packages: discover and apply external starship.toml themes.
 
 A theme package is a directory under themes/<name>/ containing:
-  Theme.toml     - metadata: name, description
+  Theme.toml     - metadata: [theme] section with name, version, description
   Starship.toml  - the prompt config
 
 `ziro theme list` shows available packages; `ziro theme apply <name>`
@@ -25,12 +25,12 @@ def themes_root(config_dir: Path) -> Path:
     return config_dir / THEMES_DIR
 
 
-def list_themes(config_dir: Path) -> dict[str, str]:
-    """Return {name: description} for every valid theme package."""
+def list_themes(config_dir: Path) -> dict[str, dict]:
+    """Return {name: {name, version, description, author, license}} for every valid theme package."""
     root = themes_root(config_dir)
     if not root.is_dir():
         return {}
-    found: dict[str, str] = {}
+    found: dict[str, dict] = {}
     for pkg in sorted(root.iterdir()):
         if not pkg.is_dir():
             continue
@@ -39,14 +39,30 @@ def list_themes(config_dir: Path) -> dict[str, str]:
         if not meta.is_file() or not starship.is_file():
             continue
         name = pkg.name
-        description = ""
         try:
             data = tomllib.loads(meta.read_text(encoding="utf-8"))
-            name = data.get("name", pkg.name)
-            description = data.get("description", "")
+            if "theme" in data:
+                t = data["theme"]
+                name = t.get("name", pkg.name)
+                found[name] = {
+                    "name": name,
+                    "version": t.get("version", "0.0.0"),
+                    "description": t.get("description", ""),
+                    "author": t.get("author", ""),
+                    "license": t.get("license", ""),
+                }
+            else:
+                # Legacy flat format
+                name = data.get("name", pkg.name)
+                found[name] = {
+                    "name": name,
+                    "version": data.get("version", "0.0.0"),
+                    "description": data.get("description", ""),
+                    "author": data.get("author", ""),
+                    "license": data.get("license", ""),
+                }
         except (OSError, tomllib.TOMLDecodeError):
             pass
-        found[name] = description
     return found
 
 
@@ -66,7 +82,7 @@ def apply(config_dir: Path, name: str, force: bool = False) -> int:
     """Apply a theme package to ~/.config/starship.toml."""
     themes = list_themes(config_dir)
     if name not in themes:
-        ui.error(f"unknown theme '{name}'. Available: {', '.join(themes) or 'none'}")
+        ui.error(f"unknown theme '{name}'. Available: {', '.join(themes.keys()) or 'none'}")
         return 2
     src = theme_file(config_dir, name)
     if src is None:
@@ -94,9 +110,12 @@ def run(config_dir: Path, command: str | None, name: str | None,
         if not themes:
             ui.info(f"no theme packages in {themes_root(config_dir)}")
             return 0
-        for tname, desc in themes.items():
+        for tname, meta in themes.items():
             marker = " (default)" if tname == DEFAULT_THEME else ""
-            ui.info(f"{tname}{marker}: {desc}" if desc else f"{tname}{marker}")
+            ver = meta.get("version", "")
+            desc = meta.get("description", "")
+            label = f"{tname}{marker} v{ver}" if ver else f"{tname}{marker}"
+            ui.info(f"{label}: {desc}" if desc else label)
         return 0
 
     if command == "current":
@@ -114,7 +133,7 @@ def run(config_dir: Path, command: str | None, name: str | None,
     if command == "apply":
         if not name:
             themes = list_themes(config_dir)
-            ui.error(f"usage: ziro theme apply <name>. Available: {', '.join(themes) or 'none'}")
+            ui.error(f"usage: ziro theme apply <name>. Available: {', '.join(themes.keys()) or 'none'}")
             return 2
         return apply(config_dir, name, force)
 

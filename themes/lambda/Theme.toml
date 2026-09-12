@@ -1,2 +1,6 @@
+[theme]
 name = "lambda"
+version = "1.0.0"
 description = "Ziro default: user@host, dir, git, lambda character"
+author = "Pakrohk"
+license = "MIT"
