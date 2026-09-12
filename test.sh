@@ -361,6 +361,34 @@ else
     ERRORS="${ERRORS}  - schema-reject-name-mismatch\n"
     echo "[FAIL] schema-reject-name-mismatch"
 fi
+
+# 12b-i. Empty Starship.toml → rejected
+mkdir -p "$TMP/.ziro/themes/emptystar"
+printf '[theme]\nname = "emptystar"\nversion = "1.0.0"\ndescription = "empty"\nauthor = "test"\nlicense = "MIT"\n' > "$TMP/.ziro/themes/emptystar/Theme.toml"
+printf '' > "$TMP/.ziro/themes/emptystar/Starship.toml"
+TOTAL=$((TOTAL + 1))
+if ! HOME="$TMP" "$PY" "$ENGINE" theme list 2>/dev/null | grep -q "emptystar"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] schema-reject-empty-starship"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - schema-reject-empty-starship\n"
+    echo "[FAIL] schema-reject-empty-starship"
+fi
+
+# 12b-j. Invalid TOML in Starship.toml → rejected
+mkdir -p "$TMP/.ziro/themes/badstar"
+printf '[theme]\nname = "badstar"\nversion = "1.0.0"\ndescription = "bad"\nauthor = "test"\nlicense = "MIT"\n' > "$TMP/.ziro/themes/badstar/Theme.toml"
+printf 'this is not { valid toml' > "$TMP/.ziro/themes/badstar/Starship.toml"
+TOTAL=$((TOTAL + 1))
+if ! HOME="$TMP" "$PY" "$ENGINE" theme list 2>/dev/null | grep -q "badstar"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] schema-reject-invalid-starship-toml"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - schema-reject-invalid-starship-toml\n"
+    echo "[FAIL] schema-reject-invalid-starship-toml"
+fi
+
+rm -rf "$TMP"
 # ═══════════════════════════════════════════════════════════════════════════════
 echo "=== 13. Untrack .zshrc.local ==="
 TMP=$(mktemp -d /tmp/opencode/ziro-14-XXXX)
