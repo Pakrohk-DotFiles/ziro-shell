@@ -484,7 +484,7 @@ def _install_starship_config(opts: Options, config_dir: Path) -> None:
         ui.present("~/.config/starship.toml (preserved, user-owned)")
         return
     if opts.dry_run:
-        ui.info(f"Would copy {config_dir / 'themes' / 'lambda' / 'starship.toml'} -> {conf}")
+        ui.info(f"Would copy {config_dir / 'themes' / 'lambda' / 'Starship.toml'} -> {conf}")
         return
     src = themes.theme_file(config_dir, themes.DEFAULT_THEME)
     if src is None:

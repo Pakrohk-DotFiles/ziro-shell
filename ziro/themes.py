@@ -1,11 +1,11 @@
 """Theme packages: discover and apply external starship.toml themes.
 
 A theme package is a directory under themes/<name>/ containing:
-  theme.toml     - metadata: name, description
-  starship.toml  - the prompt config
+  Theme.toml     - metadata: name, description
+  Starship.toml  - the prompt config
 
 `ziro theme list` shows available packages; `ziro theme apply <name>`
-copies its starship.toml to ~/.config/starship.toml. Apply never
+copies its Starship.toml to ~/.config/starship.toml. Apply never
 overwrites a user-owned config unless the user confirms via --force
 or the existing file is identical to the theme being applied.
 """
@@ -34,8 +34,8 @@ def list_themes(config_dir: Path) -> dict[str, str]:
     for pkg in sorted(root.iterdir()):
         if not pkg.is_dir():
             continue
-        meta = pkg / "theme.toml"
-        starship = pkg / "starship.toml"
+        meta = pkg / "Theme.toml"
+        starship = pkg / "Starship.toml"
         if not meta.is_file() or not starship.is_file():
             continue
         name = pkg.name
@@ -51,13 +51,13 @@ def list_themes(config_dir: Path) -> dict[str, str]:
 
 
 def theme_file(config_dir: Path, name: str) -> Path | None:
-    """Path to a theme package's starship.toml, or None if missing."""
+    """Path to a theme package's Starship.toml, or None if missing."""
     for pkg_name, _ in list_themes(config_dir).items():
         pass
     # list_themes may remap name via theme.toml; resolve by dir too.
     pkg = themes_root(config_dir) / name
-    starship = pkg / "starship.toml"
-    if (pkg / "theme.toml").is_file() and starship.is_file():
+    starship = pkg / "Starship.toml"
+    if (pkg / "Theme.toml").is_file() and starship.is_file():
         return starship
     return None
 
@@ -70,7 +70,7 @@ def apply(config_dir: Path, name: str, force: bool = False) -> int:
         return 2
     src = theme_file(config_dir, name)
     if src is None:
-        ui.error(f"theme '{name}' is missing starship.toml")
+        ui.error(f"theme '{name}' is missing Starship.toml")
         return 1
     if CONFIG_PATH.exists() and not force:
         if CONFIG_PATH.read_bytes() == src.read_bytes():
@@ -101,7 +101,7 @@ def run(config_dir: Path, command: str | None, name: str | None,
 
     if command == "current":
         if not CONFIG_PATH.is_file():
-            ui.info("no starship.toml installed")
+            ui.info("no Starship.toml installed")
             return 1
         for tname in list_themes(config_dir):
             src = theme_file(config_dir, tname)
