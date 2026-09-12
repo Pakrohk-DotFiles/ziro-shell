@@ -12,6 +12,7 @@ or the existing file is identical to the theme being applied.
 
 import shutil
 import tomllib
+from dataclasses import dataclass
 from pathlib import Path
 
 from . import ui
@@ -21,15 +22,25 @@ DEFAULT_THEME = "lambda"
 CONFIG_PATH = Path.home() / ".config" / "starship.toml"
 
 
-def themes_root(config_dir: Path) -> Path:
-    return config_dir / THEMES_DIR
+@dataclass(frozen=True)
+class ThemePackage:
+    """Validated theme package metadata from Theme.toml."""
+    name: str
+    version: str
+    description: str
+    author: str = ""
+    license: str = ""
 
 
 REQUIRED_THEME_FIELDS = {"name", "version", "description"}
 
 
-def _validate_theme(data: dict) -> dict | None:
-    """Validate a Theme.toml [theme] section. Returns parsed dict or None."""
+def themes_root(config_dir: Path) -> Path:
+    return config_dir / THEMES_DIR
+
+
+def _validate_theme(data: dict) -> ThemePackage | None:
+    """Validate a Theme.toml [theme] section. Returns ThemePackage or None."""
     if not isinstance(data.get("theme"), dict):
         return None
     t = data["theme"]
@@ -41,17 +52,17 @@ def _validate_theme(data: dict) -> dict | None:
         return None
     if not isinstance(t["description"], str):
         return None
-    return {
-        "name": t["name"],
-        "version": t["version"],
-        "description": t["description"],
-        "author": t.get("author", ""),
-        "license": t.get("license", ""),
-    }
+    return ThemePackage(
+        name=t["name"],
+        version=t["version"],
+        description=t["description"],
+        author=t.get("author", ""),
+        license=t.get("license", ""),
+    )
 
 
-def list_themes(config_dir: Path) -> dict[str, dict]:
-    """Return {name: metadata} for every valid theme package.
+def list_themes(config_dir: Path) -> dict[str, ThemePackage]:
+    """Return {name: ThemePackage} for every valid theme package.
 
     A valid package must have both Theme.toml and Starship.toml.
     Theme.toml must contain a [theme] section with required fields:
@@ -60,7 +71,7 @@ def list_themes(config_dir: Path) -> dict[str, dict]:
     root = themes_root(config_dir)
     if not root.is_dir():
         return {}
-    found: dict[str, dict] = {}
+    found: dict[str, ThemePackage] = {}
     for pkg in sorted(root.iterdir()):
         if not pkg.is_dir():
             continue
@@ -73,7 +84,7 @@ def list_themes(config_dir: Path) -> dict[str, dict]:
             parsed = _validate_theme(data)
             if parsed is None:
                 continue
-            found[parsed["name"]] = parsed
+            found[parsed.name] = parsed
         except (OSError, tomllib.TOMLDecodeError):
             pass
     return found
@@ -81,9 +92,6 @@ def list_themes(config_dir: Path) -> dict[str, dict]:
 
 def theme_file(config_dir: Path, name: str) -> Path | None:
     """Path to a theme package's Starship.toml, or None if missing."""
-    for pkg_name, _ in list_themes(config_dir).items():
-        pass
-    # list_themes may remap name via theme.toml; resolve by dir too.
     pkg = themes_root(config_dir) / name
     starship = pkg / "Starship.toml"
     if (pkg / "Theme.toml").is_file() and starship.is_file():
@@ -95,7 +103,7 @@ def apply(config_dir: Path, name: str, force: bool = False) -> int:
     """Apply a theme package to ~/.config/starship.toml."""
     themes = list_themes(config_dir)
     if name not in themes:
-        ui.error(f"unknown theme '{name}'. Available: {', '.join(themes.keys()) or 'none'}")
+        ui.error(f"unknown theme '{name}'. Available: {', '.join(themes) or 'none'}")
         return 2
     src = theme_file(config_dir, name)
     if src is None:
@@ -125,10 +133,8 @@ def run(config_dir: Path, command: str | None, name: str | None,
             return 0
         for tname, meta in themes.items():
             marker = " (default)" if tname == DEFAULT_THEME else ""
-            ver = meta.get("version", "")
-            desc = meta.get("description", "")
-            label = f"{tname}{marker} v{ver}" if ver else f"{tname}{marker}"
-            ui.info(f"{label}: {desc}" if desc else label)
+            label = f"{tname}{marker} v{meta.version}"
+            ui.info(f"{label}: {meta.description}" if meta.description else label)
         return 0
 
     if command == "current":
@@ -146,7 +152,7 @@ def run(config_dir: Path, command: str | None, name: str | None,
     if command == "apply":
         if not name:
             themes = list_themes(config_dir)
-            ui.error(f"usage: ziro theme apply <name>. Available: {', '.join(themes.keys()) or 'none'}")
+            ui.error(f"usage: ziro theme apply <name>. Available: {', '.join(themes) or 'none'}")
             return 2
         return apply(config_dir, name, force)
 
