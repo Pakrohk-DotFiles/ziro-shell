@@ -420,6 +420,25 @@ run_test_check "install-skips-broken-default-theme" 0 "$TMP" \
 rm -rf "$TMP"
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 12d. CLI symlink healed to ~/.ziro/ziro-cli after legacy migration
+# ═══════════════════════════════════════════════════════════════════════════════
+echo "=== 12d. CLI symlink after migration ==="
+TMP=$(mktemp -d /tmp/opencode/ziro-12d-XXXX)
+mkdir -p "$TMP/.zsh_config"
+cp "$REPO/.zshrc" "$REPO/.zsh_aliases" "$REPO/.gitignore" "$REPO/ziro-cli" "$TMP/.zsh_config/" 2>/dev/null
+cp -r "$REPO/themes" "$TMP/.zsh_config/"
+[ -d "$REPO/znap" ] && cp -r "$REPO/znap" "$TMP/.zsh_config/"
+git -C "$TMP/.zsh_config" init -q 2>/dev/null
+git -C "$TMP/.zsh_config" remote add origin https://github.com/Pakrohk-DotFiles/ziro-shell.git
+ln -sf "$TMP/.zsh_config/.zshrc" "$TMP/.zshrc"
+mkdir -p "$TMP/.local/bin"
+ln -sf "$TMP/.zsh_config/ziro-cli" "$TMP/.local/bin/ziro"
+run_test_check "cli-symlink-healed-after-migration" 0 "$TMP" \
+    'test "$(readlink "$HOME/.local/bin/ziro")" = "$HOME/.ziro/ziro-cli"' \
+    "$PY" "$ENGINE" install --non-interactive --skip-deps --skip-shell
+rm -rf "$TMP"
+
+# ═══════════════════════════════════════════════════════════════════════════════
 echo "=== 13. Untrack .zshrc.local ==="
 TMP=$(mktemp -d /tmp/opencode/ziro-14-XXXX)
 cp -r "$REPO" "$TMP/.ziro"
