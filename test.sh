@@ -256,6 +256,76 @@ run_test_check "theme-apply-force" 0 "$TMP" \
 rm -rf "$TMP"
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 12b. Theme schema strict validation
+# ═══════════════════════════════════════════════════════════════════════════════
+echo "=== 12b. Theme schema validation ==="
+TMP=$(mktemp -d /tmp/opencode/ziro-12b-XXXX)
+seed_repo "$TMP/.ziro"
+
+# 12b-a. Valid lambda package is accepted
+TOTAL=$((TOTAL + 1))
+if HOME="$TMP" "$PY" "$ENGINE" theme list 2>/dev/null | grep -q "lambda"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] schema-valid-lambda"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - schema-valid-lambda\n"
+    echo "[FAIL] schema-valid-lambda"
+fi
+
+# 12b-b. Missing [theme] section → package rejected
+mkdir -p "$TMP/.ziro/themes/bad1"
+printf 'name = "bad1"\nversion = "1.0.0"\ndescription = "bad"\n' > "$TMP/.ziro/themes/bad1/Theme.toml"
+touch "$TMP/.ziro/themes/bad1/Starship.toml"
+TOTAL=$((TOTAL + 1))
+if ! HOME="$TMP" "$PY" "$ENGINE" theme list 2>/dev/null | grep -q "bad1"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] schema-reject-no-section"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - schema-reject-no-section\n"
+    echo "[FAIL] schema-reject-no-section"
+fi
+
+# 12b-c. Missing required field (no version) → rejected
+mkdir -p "$TMP/.ziro/themes/bad2"
+printf '[theme]\nname = "bad2"\ndescription = "bad"\n' > "$TMP/.ziro/themes/bad2/Theme.toml"
+touch "$TMP/.ziro/themes/bad2/Starship.toml"
+TOTAL=$((TOTAL + 1))
+if ! HOME="$TMP" "$PY" "$ENGINE" theme list 2>/dev/null | grep -q "bad2"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] schema-reject-missing-version"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - schema-reject-missing-version\n"
+    echo "[FAIL] schema-reject-missing-version"
+fi
+
+# 12b-d. Empty name → rejected
+mkdir -p "$TMP/.ziro/themes/bad3"
+printf '[theme]\nname = ""\nversion = "1.0.0"\ndescription = "bad"\n' > "$TMP/.ziro/themes/bad3/Theme.toml"
+touch "$TMP/.ziro/themes/bad3/Starship.toml"
+TOTAL=$((TOTAL + 1))
+if ! HOME="$TMP" "$PY" "$ENGINE" theme list 2>/dev/null | grep -q "bad3"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] schema-reject-empty-name"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - schema-reject-empty-name\n"
+    echo "[FAIL] schema-reject-empty-name"
+fi
+
+# 12b-e. Missing Starship.toml → package rejected even with valid Theme.toml
+mkdir -p "$TMP/.ziro/themes/bad4"
+printf '[theme]\nname = "bad4"\nversion = "1.0.0"\ndescription = "bad"\n' > "$TMP/.ziro/themes/bad4/Theme.toml"
+TOTAL=$((TOTAL + 1))
+if ! HOME="$TMP" "$PY" "$ENGINE" theme list 2>/dev/null | grep -q "bad4"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] schema-reject-missing-starship"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - schema-reject-missing-starship\n"
+    echo "[FAIL] schema-reject-missing-starship"
+fi
+
+rm -rf "$TMP"
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # 13. Untrack legacy-tracked .zshrc.local — file kept on disk, no longer in git
 # ═══════════════════════════════════════════════════════════════════════════════
 echo "=== 13. Untrack .zshrc.local ==="

@@ -25,8 +25,38 @@ def themes_root(config_dir: Path) -> Path:
     return config_dir / THEMES_DIR
 
 
+REQUIRED_THEME_FIELDS = {"name", "version", "description"}
+
+
+def _validate_theme(data: dict) -> dict | None:
+    """Validate a Theme.toml [theme] section. Returns parsed dict or None."""
+    if not isinstance(data.get("theme"), dict):
+        return None
+    t = data["theme"]
+    if not REQUIRED_THEME_FIELDS.issubset(t.keys()):
+        return None
+    if not isinstance(t["name"], str) or not t["name"]:
+        return None
+    if not isinstance(t["version"], str) or not t["version"]:
+        return None
+    if not isinstance(t["description"], str):
+        return None
+    return {
+        "name": t["name"],
+        "version": t["version"],
+        "description": t["description"],
+        "author": t.get("author", ""),
+        "license": t.get("license", ""),
+    }
+
+
 def list_themes(config_dir: Path) -> dict[str, dict]:
-    """Return {name: {name, version, description, author, license}} for every valid theme package."""
+    """Return {name: metadata} for every valid theme package.
+
+    A valid package must have both Theme.toml and Starship.toml.
+    Theme.toml must contain a [theme] section with required fields:
+    name, version, description. Packages missing any of these are skipped.
+    """
     root = themes_root(config_dir)
     if not root.is_dir():
         return {}
@@ -38,29 +68,12 @@ def list_themes(config_dir: Path) -> dict[str, dict]:
         starship = pkg / "Starship.toml"
         if not meta.is_file() or not starship.is_file():
             continue
-        name = pkg.name
         try:
             data = tomllib.loads(meta.read_text(encoding="utf-8"))
-            if "theme" in data:
-                t = data["theme"]
-                name = t.get("name", pkg.name)
-                found[name] = {
-                    "name": name,
-                    "version": t.get("version", "0.0.0"),
-                    "description": t.get("description", ""),
-                    "author": t.get("author", ""),
-                    "license": t.get("license", ""),
-                }
-            else:
-                # Legacy flat format
-                name = data.get("name", pkg.name)
-                found[name] = {
-                    "name": name,
-                    "version": data.get("version", "0.0.0"),
-                    "description": data.get("description", ""),
-                    "author": data.get("author", ""),
-                    "license": data.get("license", ""),
-                }
+            parsed = _validate_theme(data)
+            if parsed is None:
+                continue
+            found[parsed["name"]] = parsed
         except (OSError, tomllib.TOMLDecodeError):
             pass
     return found
