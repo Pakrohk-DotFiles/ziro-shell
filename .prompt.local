@@ -8,7 +8,7 @@
 # Load Starship with znap eval (caches output for speed)
 znap eval starship 'starship init zsh --print-full-init'
 
-# starship.toml is managed by ziro
-# Pick a theme with `ziro theme list` / `ziro theme apply <name>`.
-# A user-managed starship.toml (no ziro marker) is never touched.
+# starship.toml: ziro install copies the repo's static config to
+# ~/.config/starship.toml on first install only. Edit that file freely;
+# ziro never overwrites it.
 
