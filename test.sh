@@ -57,13 +57,13 @@ seed_repo() {
     cp "$REPO/.zshrc" "$d/"
     cp "$REPO/.zsh_aliases" "$d/"
     cp "$REPO/.gitignore" "$d/"
+    cp "$REPO/ziro-cli" "$d/"
     cp -r "$REPO/themes" "$d/"
     if [ -d "$REPO/znap" ]; then
         cp -r "$REPO/znap" "$d/"
     fi
+    chmod +x "$d/ziro-cli"
     git -C "$d" init -q 2>/dev/null
-    # Use a local bare repo as origin (avoids network in tests).
-    # Install will try git pull, fail, and use the local copy.
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -234,8 +234,16 @@ else
     ERRORS="${ERRORS}  - theme-list-shows-lambda\n"
     echo "[FAIL] theme-list-shows-lambda"
 fi
-run_test "theme-current" 0 "$TMP" "$PY" "$ENGINE" theme current
 run_test "theme-apply-lambda" 0 "$TMP" "$PY" "$ENGINE" theme apply lambda
+# current reports the installed theme
+TOTAL=$((TOTAL + 1))
+if HOME="$TMP" "$PY" "$ENGINE" theme current 2>/dev/null | grep -q "lambda"; then
+    PASSED=$((PASSED + 1)); echo "[PASS] theme-current"
+else
+    FAILED=$((FAILED + 1))
+    ERRORS="${ERRORS}  - theme-current\n"
+    echo "[FAIL] theme-current"
+fi
 run_test "theme-apply-unknown" 2 "$TMP" "$PY" "$ENGINE" theme apply bogus
 # apply must refuse to clobber a differing user-owned file (rc=1, file intact)
 TOTAL=$((TOTAL + 1))

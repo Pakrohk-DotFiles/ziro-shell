@@ -11,8 +11,8 @@ overwrites a user-owned config unless the user confirms via --force
 or the existing file is identical to the theme being applied.
 """
 
+import os
 import re
-import shutil
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,6 +32,8 @@ class ThemePackage:
     description: str
     author: str
     license: str
+    path: Path
+    starship: Path
 
 
 REQUIRED_THEME_FIELDS = {"name", "version", "description", "author", "license"}
@@ -43,7 +45,7 @@ def themes_root(config_dir: Path) -> Path:
     return config_dir / THEMES_DIR
 
 
-def _validate_theme(data: dict) -> ThemePackage | None:
+def _validate_theme(data: dict, pkg_dir: Path) -> ThemePackage | None:
     """Validate a Theme.toml [theme] section. Returns ThemePackage or None."""
     if not isinstance(data.get("theme"), dict):
         return None
@@ -61,6 +63,8 @@ def _validate_theme(data: dict) -> ThemePackage | None:
         description=t["description"],
         author=t["author"],
         license=t["license"],
+        path=pkg_dir,
+        starship=pkg_dir / "Starship.toml",
     )
 
 
@@ -85,7 +89,7 @@ def list_themes(config_dir: Path) -> dict[str, ThemePackage]:
             continue
         try:
             data = tomllib.loads(meta.read_text(encoding="utf-8"))
-            parsed = _validate_theme(data)
+            parsed = _validate_theme(data, pkg)
             if parsed is None:
                 continue
             if parsed.name != pkg.name:
@@ -101,23 +105,35 @@ def list_themes(config_dir: Path) -> dict[str, ThemePackage]:
 
 
 def theme_file(config_dir: Path, name: str) -> Path | None:
-    """Path to a theme package's Starship.toml, or None if missing."""
-    pkg = themes_root(config_dir) / name
-    starship = pkg / "Starship.toml"
-    if (pkg / "Theme.toml").is_file() and starship.is_file():
-        return starship
-    return None
+    """Starship.toml path from a validated theme package, or None."""
+    pkg = list_themes(config_dir).get(name)
+    return pkg.starship if pkg else None
+
+
+def _atomic_write(dest: Path, data: bytes) -> None:
+    """Write bytes to dest atomically: temp file in same dir, fsync, os.replace."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_name(f".{dest.name}.ziro.tmp")
+    try:
+        with open(tmp, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, dest)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def apply(config_dir: Path, name: str, force: bool = False) -> int:
-    """Apply a theme package to ~/.config/starship.toml."""
+    """Apply a validated theme package to ~/.config/starship.toml."""
     themes = list_themes(config_dir)
     if name not in themes:
         ui.error(f"unknown theme '{name}'. Available: {', '.join(themes) or 'none'}")
         return 2
-    src = theme_file(config_dir, name)
-    if src is None:
-        ui.error(f"theme '{name}' is missing Starship.toml")
+    src = themes[name].starship
+    if CONFIG_PATH.is_symlink():
+        ui.error(f"{CONFIG_PATH} is a symlink; refusing to follow it.")
+        ui.info("Remove the symlink first, then run: ziro theme apply " + name)
         return 1
     if CONFIG_PATH.exists() and not force:
         if CONFIG_PATH.read_bytes() == src.read_bytes():
@@ -126,8 +142,7 @@ def apply(config_dir: Path, name: str, force: bool = False) -> int:
         ui.error(f"{CONFIG_PATH} exists and differs from theme '{name}'.")
         ui.info("Remove it or run: ziro theme apply " + name + " --force")
         return 1
-    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(src, CONFIG_PATH)
+    _atomic_write(CONFIG_PATH, src.read_bytes())
     ui.configured(f"~/.config/starship.toml -> theme '{name}'")
     ui.info("restart your terminal or run: source ~/.zshrc")
     return 0
@@ -151,12 +166,12 @@ def run(config_dir: Path, command: str | None, name: str | None,
         if not CONFIG_PATH.is_file():
             ui.info("no Starship.toml installed")
             return 1
-        for tname in list_themes(config_dir):
-            src = theme_file(config_dir, tname)
-            if src and CONFIG_PATH.read_bytes() == src.read_bytes():
-                ui.info(f"theme '{tname}' (or user-modified copy)")
+        current = CONFIG_PATH.read_bytes()
+        for tname, pkg in list_themes(config_dir).items():
+            if current == pkg.starship.read_bytes():
+                ui.info(f"theme '{tname}'")
                 return 0
-        ui.info("user-owned config (no theme match)")
+        ui.info("custom (no exact theme match)")
         return 0
 
     if command == "apply":

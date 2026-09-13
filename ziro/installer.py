@@ -45,6 +45,8 @@ class Options:
     enable_ssh_agent: bool | None = None
     enable_update_check: bool | None = None
     enable_nmap: bool | None = None
+    # Theme
+    theme: str | None = None
 
 
 LANG_PROMPTS = [
@@ -211,14 +213,17 @@ def install(opts: Options) -> int:
         _backup_existing(opts)
         if not _link_zshrc(opts, config_dir):
             return 1
-        _install_cli(opts, config_dir)
+        if not _install_cli(opts, config_dir):
+            return 1
         if not opts.dry_run:
             _persist_language_flags(config_dir, all_values)
         _install_starship_config(opts, config_dir)
         _create_local_config(opts, config_dir)
+        _ensure_local_bin_on_path(opts.dry_run)
         _change_shell(opts, plat)
         _final_compile(opts, config_dir)
-        _verify_install(opts, config_dir)
+        if not _verify_install(opts, config_dir):
+            return 1
     except RunError as exc:
         report_failure(exc)
         ui.error("Installation aborted.")
@@ -442,8 +447,13 @@ def _link_zshrc(opts: Options, config_dir: Path) -> bool:
     return True
 
 
-def _install_cli(opts: Options, config_dir: Path) -> None:
-    """Symlink `ziro-cli` to ~/.local/bin/ziro so the `ziro` command is on PATH."""
+def _install_cli(opts: Options, config_dir: Path) -> bool:
+    """Symlink `ziro-cli` to ~/.local/bin/ziro. Returns False on failure.
+
+    - Idempotent: re-creates the link when the target or permission is wrong.
+    - Verifies: symlink exists, target exists, target is executable.
+    - Does NOT replace an unrelated user-owned file at the destination.
+    """
     ui.section("Installing CLI")
     bin_dir = _home() / ".local" / "bin"
     src = config_dir / "ziro-cli"
@@ -451,24 +461,53 @@ def _install_cli(opts: Options, config_dir: Path) -> None:
 
     if opts.dry_run:
         ui.info(f"Would symlink {dst} -> {src}")
-        return
+        return True
 
     if not src.is_file():
         ui.warn(f"{src} not found; skipping CLI installation")
-        return
+        return True
+
+    # refuse to clobber a regular file the user owns
+    if dst.is_file() and not dst.is_symlink():
+        ui.error(f"{dst} is a user-owned file; not replacing it.")
+        ui.info("Move it aside and re-run: ziro install")
+        return False
 
     if not bin_dir.is_dir():
         bin_dir.mkdir(parents=True, exist_ok=True)
         ui.info(f"Created {bin_dir}")
 
+    # recreate only when the link is wrong or permissions are wrong
     if dst.is_symlink() and os.readlink(dst) == str(src):
-        ui.present("~/.local/bin/ziro link")
-        return
+        if os.access(src, os.X_OK):
+            ui.present("~/.local/bin/ziro link")
+            return True
+        # target exists but lost exec bit → fix
+        src.chmod(src.stat().st_mode | 0o755)
 
-    if dst.exists() or dst.is_symlink():
+    if dst.is_symlink() or dst.exists():
         dst.unlink()
     dst.symlink_to(src)
+    src.chmod(src.stat().st_mode | 0o755)
     ui.configured(f"~/.local/bin/ziro -> {src}")
+    return True
+
+
+def _ensure_local_bin_on_path(dry_run: bool) -> None:
+    """Append a guarded PATH line to .zshrc.local if not already present."""
+    local = _home() / ".ziro" / ".zshrc.local"
+    guard = '[[ ":$PATH:" != *":$HOME/.local/bin:"* ]] && export PATH="$HOME/.local/bin:$PATH"'
+    marker = "# Add ~/.local/bin to PATH (set by ziro install)"
+    if local.is_file():
+        text = local.read_text(encoding="utf-8", errors="replace")
+        if marker in text or 'export PATH="$HOME/.local/bin' in text:
+            return
+    if dry_run:
+        ui.info("Would ensure ~/.local/bin is on PATH in .zshrc.local")
+        return
+    with open(local, "a") as f:
+        f.write(f"\n{marker}\n{guard}\n")
+    ui.configured("~/.local/bin on PATH in .zshrc.local")
 
 
 def _install_starship_config(opts: Options, config_dir: Path) -> None:
@@ -486,12 +525,12 @@ def _install_starship_config(opts: Options, config_dir: Path) -> None:
     if opts.dry_run:
         ui.info(f"Would copy default theme (themes/{themes.DEFAULT_THEME}) -> {conf}")
         return
-    src = themes.theme_file(config_dir, themes.DEFAULT_THEME)
-    if src is None or themes.DEFAULT_THEME not in themes.list_themes(config_dir):
+    pkg = themes.list_themes(config_dir).get(themes.DEFAULT_THEME)
+    if pkg is None:
         ui.skipped(f"no valid default theme package (themes/{themes.DEFAULT_THEME}); skipping")
         return
     conf.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(src, conf)
+    shutil.copyfile(pkg.starship, conf)
     ui.installed("~/.config/starship.toml (edit freely; ziro never overwrites)")
 
 
@@ -584,11 +623,32 @@ def _final_compile(opts: Options, config_dir: Path) -> None:
     ui.success("Compilation done")
 
 
-def _verify_install(opts: Options, config_dir: Path) -> None:
+def _verify_install(opts: Options, config_dir: Path) -> bool:
+    """Verify installation: zsh loads, plugins present, CLI executable."""
     ui.section("Verifying installation")
     if opts.dry_run:
-        ui.info("Would verify zsh startup")
-        return
+        ui.info("Would verify zsh startup and CLI")
+        return True
+
+    # run the installed CLI
+    cli = _home() / ".local" / "bin" / "ziro"
+    if cli.is_symlink():
+        engine_dir = cli.resolve().parent / "ziro"
+        if engine_dir.is_dir():
+            try:
+                out = capture([str(cli), "--version"], check=False)
+                if out:
+                    ui.success(f"CLI works: {out.strip()}")
+                else:
+                    ui.warn(f"{cli} --version produced no output")
+            except Exception:
+                ui.warn(f"{cli} --version could not run")
+        else:
+            ui.info("CLI link present; engine not available (skipping exec check)")
+    else:
+        ui.warn(f"{cli} not found; CLI version check skipped")
+
+    # zsh startup
     if quiet(["zsh", "-ic", "echo ZSH_OK"]):
         ui.success("Zsh loads without errors")
     else:
@@ -604,6 +664,7 @@ def _verify_install(opts: Options, config_dir: Path) -> None:
         ui.warn(f"Missing plugins: {', '.join(missing)}")
         ui.warn(f"Run 'znap pull' or re-run 'ziro install' in {config_dir}")
     ui.success("Verification complete")
+    return True
 
 
 def getting_started_lines() -> list[str]:
