@@ -265,9 +265,14 @@ fi # End of SSH Agent check
 ########################################
 # Fallback for custom functions
 ########################################
-[ -d "$ZSH_CONFIG_DIR/.zfunc" ] && fpath+="$ZSH_CONFIG_DIR/.zfunc"
-autoload -Uz compinit
-compinit
+[ -d "$ZSH_CONFIG_DIR/.zfunc" ] && {
+    fpath+=("$ZSH_CONFIG_DIR/.zfunc")
+    # .zfunc appeared after the compinit above; a fresh scan registers it.
+    # compinit -C would reuse the stale dump and silently skip this fpath.
+    # Without .zfunc there is nothing to rescan, so the second compinit
+    # (~40ms) is skipped entirely.
+    autoload -Uz compinit && compinit
+}
 
 ########################################
 # End of Ziro ~/.zshrc

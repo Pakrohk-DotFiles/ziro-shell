@@ -12,7 +12,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ziro import installer, themes  # noqa: E402
-from ziro.installer import Options, _detect_conflicts, _preflight  # noqa: E402
+from ziro.installer import (  # noqa: E402
+    Options, _detect_conflicts, _persist_language_flags, _preflight,
+)
 
 
 class TestConflictDetection(unittest.TestCase):
@@ -168,6 +170,44 @@ class TestPathHeal(unittest.TestCase):
     def test_dry_run_writes_nothing(self):
         installer._ensure_local_bin_on_path(True)
         self.assertFalse((self.home / ".zshenv").exists())
+
+
+class TestPersistLanguageFlags(unittest.TestCase):
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp(prefix="ziro-flags-"))
+        self.config = self.home / ".ziro"
+        self.config.mkdir()
+
+    def tearDown(self):
+        shutil.rmtree(self.home)
+
+    def _values(self, **extra):
+        v = {
+            "ENABLE_PYTHON": "no", "ENABLE_RUST": "no", "ENABLE_GO": "no",
+            "ENABLE_NODE": "no", "ENABLE_ZCOLORS": "no", "ENABLE_WD": "no",
+            "ENABLE_ALIAS_TIPS": "no", "ENABLE_Z": "no", "ENABLE_PF": "no",
+            "ENABLE_SSH_AGENT": "no", "ENABLE_UPDATE_CHECK": "no",
+            "ENABLE_NMAP": "no",
+        }
+        v.update(extra)
+        return v
+
+    def test_repeated_installs_do_not_duplicate_headers(self):
+        local = self.config / ".zshrc.local"
+        for _ in range(3):
+            _persist_language_flags(local.parent, self._values())
+        text = local.read_text()
+        self.assertEqual(text.count("# Language tooling (set by ziro install"), 1)
+        self.assertEqual(text.count("# Shell features (set by ziro install"), 1)
+        self.assertEqual(text.count("export ENABLE_PYTHON"), 1)
+
+    def test_user_content_preserved(self):
+        local = self.config / ".zshrc.local"
+        local.write_text("# my aliases\nalias ll='ls -la'\n")
+        _persist_language_flags(self.config, self._values(ENABLE_RUST="yes"))
+        text = local.read_text()
+        self.assertIn("alias ll='ls -la'", text)
+        self.assertIn("export ENABLE_RUST='yes'", text)
 
 
 class TestThemeInstall(unittest.TestCase):
