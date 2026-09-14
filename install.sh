@@ -5,17 +5,17 @@ set -euo pipefail
 
 REPO_URL="https://github.com/Pakrohk-DotFiles/ziro-shell.git"
 
-# --- Locate Python 3 ---
+# --- Locate Python 3.11+ (engine needs tomllib; also PEP 604 dataclasses) ---
 PYTHON=""
 for candidate in python3 python; do
     if command -v "$candidate" >/dev/null 2>&1 && \
-       "$candidate" -c 'import sys; sys.exit(0 if sys.version_info[0] >= 3 else 1)' 2>/dev/null; then
+       "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
         PYTHON="$candidate"
         break
     fi
 done
 if [ -z "$PYTHON" ]; then
-    echo "error: Python 3 is required. Install python3 and retry." >&2
+    echo "error: Python 3.11 or later is required (engine uses tomllib)." >&2
     exit 1
 fi
 
@@ -46,4 +46,14 @@ if [ -z "$SCRIPT_DIR" ] || [ ! -d "$SCRIPT_DIR/ziro" ]; then
     exec bash "$TMPDIR_INSTALL/install.sh" "$@"
 fi
 
-exec "$PYTHON" "$SCRIPT_DIR/ziro/" install "$@"
+# --- Default to the "install" subcommand for bare flags (e.g. --server) ---
+# The engine also defaults argv-less calls to install (ziro/cli.py), so we only
+# prepend when the first argument is NOT already a subcommand. This keeps
+# `bash install.sh install --force` and `... theme apply x` working (16ecaa0
+# hardcoded the prepend, which double-added `install` and broke explicit calls).
+case "${1:-}" in
+    ""|install|update|doctor|theme|--version|-h|--help) ;;
+    *) set -- install "$@" ;;
+esac
+
+exec "$PYTHON" "$SCRIPT_DIR/ziro/" "$@"

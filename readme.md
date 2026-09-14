@@ -95,7 +95,7 @@ ziro theme apply lambda  # apply a theme package
 ziro --version        # show version
 ```
 
-Requires Python 3.8 or later. Uses only the standard library (no pip dependencies).
+Requires Python 3.11 or later (the engine uses `tomllib` and PEP 604 unions). Uses only the standard library (no pip dependencies).
 
 ## What the installer does
 

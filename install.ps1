@@ -44,6 +44,14 @@ if (-not $engine) {
     exit 1
 }
 
-if ($python -match "py\.exe$") { & $python -3 $engine install @args }
-else { & $python $engine install @args }
+# Default bare flags to the "install" subcommand (e.g. .\install.ps1 --server),
+# but leave explicit subcommands (install/update/doctor/theme) and top-level
+# flags untouched so they aren't double-prefixed.
+$known = @("install", "update", "doctor", "theme", "--version", "-h", "--help")
+$first = if ($args.Count -gt 0) { $args[0] } else { "" }
+$engineArgs = @($args)
+if ($first -notin $known) { $engineArgs = @("install") + $args }
+
+if ($python -match "py\.exe$") { & $python -3 $engine @engineArgs }
+else { & $python $engine @engineArgs }
 exit $LASTEXITCODE
