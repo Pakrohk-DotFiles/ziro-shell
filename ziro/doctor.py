@@ -188,16 +188,19 @@ def _check_starship_toml(config_dir: Path) -> Check:
 
 
 def _check_cli_on_path() -> Check:
-    """The user-facing contract: a fresh interactive shell finds `ziro`."""
-    import subprocess
+    """The user-facing contract: a fresh shell finds `ziro`."""
+    from .runner import capture  # noqa: PLC0415
     cli = Path(os.path.expanduser("~")) / ".local" / "bin" / "ziro"
     if not (cli.is_file() or cli.is_symlink()):
         return Check("ziro CLI", False, f"{cli} missing (re-run 'ziro install')")
-    proc = subprocess.run(["zsh", "-ic", "command -v ziro"],
-                          capture_output=True, text=True)
-    # interactive zsh paints its prompt onto stdout; check for the resolved path
-    if ".local/bin/ziro" in proc.stdout:
-        return Check("ziro CLI", True, "on PATH (~/.local/bin/ziro)")
+    # The PATH export lives in ~/.zshenv, which zsh sources before .zshrc in
+    # every mode, so a plain `zsh -c` proves resolution without loading
+    # plugins: `zsh -ic` with captured output can hang forever on long-lived
+    # grandchildren (znap/fzf), and interactive startup clones the plugin
+    # tree into the home directory on first run.
+    resolved = capture(["zsh", "-c", "command -v ziro"], check=False).strip()
+    if resolved:
+        return Check("ziro CLI", True, f"on PATH ({resolved})")
     return Check("ziro CLI", False,
-                  "not resolvable in a new interactive shell; add ~/.local/bin to PATH "
-                  "(export PATH=\"$HOME/.local/bin:$PATH\" in ~/.zshenv)")
+                  "~/.local/bin/ziro exists but new shells cannot find it; "
+                  'check ~/.zshenv (export PATH="$HOME/.local/bin:$PATH")')
