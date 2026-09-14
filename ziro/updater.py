@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 from . import gitops, ui
-from .runner import RunError, report_failure
+from .runner import RunError, capture, report_failure
 
 LAST_CHECK_FILE = ".last_update_check"
 
@@ -145,7 +145,7 @@ def _verify_after_update() -> bool:
     """Focused post-update check: the user must be able to run `ziro`.
 
     Full health is `ziro doctor`'s job; here we only gate on the CLI being
-    resolvable in a fresh interactive shell (the real-world breakage)."""
+    resolvable in a fresh shell (the real-world breakage)."""
     ui.section("Verifying update")
     cli = Path(os.path.expanduser("~")) / ".local" / "bin" / "ziro"
     if cli.is_file() or cli.is_symlink():
@@ -158,12 +158,15 @@ def _verify_after_update() -> bool:
     else:
         ui.warn("ziro CLI missing at ~/.local/bin/ziro (re-run 'ziro install')")
         return False
-    # interactive zsh paints its prompt on stdout; substring-match the resolved path
-    shell = subprocess.run(["zsh", "-ic", "command -v ziro"],
-                           capture_output=True, text=True)
-    if ".local/bin/ziro" not in shell.stdout:
-        ui.warn("`ziro` is not reachable in a fresh interactive shell; check PATH (~/.zshenv).")
+    # The PATH export lives in ~/.zshenv, which zsh sources before .zshrc in
+    # every mode, so a plain `zsh -c` proves resolution. `zsh -ic` with
+    # captured output can hang forever (plugin grandchildren hold the pipe)
+    # and clones the plugin tree into ~/.zinit on first run.
+    resolved = capture(["zsh", "-c", "command -v ziro"], check=False).strip()
+    if ".local/bin/ziro" not in resolved:
+        ui.warn("`ziro` is not reachable in a fresh shell; check PATH (~/.zshenv).")
         return False
+    ui.success(f"ziro resolves to {resolved} in fresh shells")
     ui.success("Update verification passed")
     return True
 
