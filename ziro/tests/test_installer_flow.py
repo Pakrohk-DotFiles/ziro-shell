@@ -126,5 +126,49 @@ class TestBackup(unittest.TestCase):
         self.assertTrue(next(self.home.glob(".zprofile.bak.*")).is_file())
 
 
+class TestPathHeal(unittest.TestCase):
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp(prefix="ziro-path-"))
+        self._orig_home = installer._home
+        self._orig_resolve = installer.gitops.resolve_config_dir
+        installer._home = lambda: self.home
+        installer.gitops.resolve_config_dir = lambda home=None: self.home / ".ziro"
+        (self.home / ".ziro").mkdir()
+
+    def tearDown(self):
+        installer._home = self._orig_home
+        installer.gitops.resolve_config_dir = self._orig_resolve
+        shutil.rmtree(self.home)
+
+    def test_creates_zshenv_export(self):
+        installer._ensure_local_bin_on_path(False)
+        zshenv = (self.home / ".zshenv").read_text()
+        self.assertIn('export PATH="$HOME/.local/bin:$PATH"', zshenv)
+
+    def test_idempotent(self):
+        installer._ensure_local_bin_on_path(False)
+        installer._ensure_local_bin_on_path(False)
+        text = (self.home / ".zshenv").read_text()
+        self.assertEqual(text.count('export PATH="$HOME/.local/bin:$PATH"'), 1)
+
+    def test_zshrc_local_gets_guarded_line(self):
+        local = self.home / ".ziro" / ".zshrc.local"
+        local.write_text("ZSH_ENV_TYPE='desktop'\n")
+        installer._ensure_local_bin_on_path(False)
+        text = local.read_text()
+        self.assertIn("ZSH_ENV_TYPE", text)  # existing content preserved
+        self.assertIn('[[ ":$PATH:" != *":$HOME/.local/bin:"* ]]', text)
+
+    def test_existing_export_not_duplicated(self):
+        zshenv = self.home / ".zshenv"
+        zshenv.write_text('export PATH="$HOME/.local/bin:$PATH"\n')
+        installer._ensure_local_bin_on_path(False)
+        self.assertEqual(zshenv.read_text().count("local/bin"), 1)
+
+    def test_dry_run_writes_nothing(self):
+        installer._ensure_local_bin_on_path(True)
+        self.assertFalse((self.home / ".zshenv").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

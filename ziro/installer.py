@@ -559,21 +559,45 @@ def _install_cli(opts: Options, config_dir: Path) -> bool:
     return True
 
 
+_PATH_MARKER = "# Add ~/.local/bin to PATH (set by ziro install)"
+_PATH_GUARD = '[[ ":$PATH:" != *":$HOME/.local/bin:"* ]] && export PATH="$HOME/.local/bin:$PATH"'
+_PATH_EXPORT = 'export PATH="$HOME/.local/bin:$PATH"'
+
+
 def _ensure_local_bin_on_path(dry_run: bool) -> None:
-    """Append a guarded PATH line to .zshrc.local if not already present."""
-    local = _home() / ".ziro" / ".zshrc.local"
-    guard = '[[ ":$PATH:" != *":$HOME/.local/bin:"* ]] && export PATH="$HOME/.local/bin:$PATH"'
-    marker = "# Add ~/.local/bin to PATH (set by ziro install)"
+    """Make ~/.local/bin/ziro reachable from fresh shells.
+
+    - ~/.zshenv runs before .zshrc in every zsh (interactive or not), so an
+      unguarded export there makes `ziro` resolvable immediately, including
+      inside non-login `zsh -c` checks.
+    - .zshrc.local keeps the guarded form for users who manage their own PATH.
+    """
+    added = []
+    config_dir = gitops.resolve_config_dir()
+    zshenv = _home() / ".zshenv"
+    if not (zshenv.is_file() and _PATH_EXPORT in zshenv.read_text(encoding="utf-8", errors="replace")):
+        if not dry_run:
+            if zshenv.exists() and not zshenv.is_symlink():
+                ui.info(f"Appending PATH line to existing {zshenv}")
+            with open(zshenv, "a") as f:
+                f.write(f"\n{_PATH_MARKER}\n{_PATH_EXPORT}\n")
+        added.append("~/.zshenv")
+
+    local = config_dir / ".zshrc.local"
     if local.is_file():
         text = local.read_text(encoding="utf-8", errors="replace")
-        if marker in text or 'export PATH="$HOME/.local/bin' in text:
-            return
-    if dry_run:
-        ui.info("Would ensure ~/.local/bin is on PATH in .zshrc.local")
-        return
-    with open(local, "a") as f:
-        f.write(f"\n{marker}\n{guard}\n")
-    ui.configured("~/.local/bin on PATH in .zshrc.local")
+        if _PATH_MARKER not in text and 'export PATH="$HOME/.local/bin' not in text:
+            if not dry_run:
+                with open(local, "a") as f:
+                    f.write(f"\n{_PATH_MARKER}\n{_PATH_GUARD}\n")
+            added.append(".zshrc.local")
+
+    if added:
+        if dry_run:
+            ui.info("Would ensure ~/.local/bin on PATH in " + " and ".join(added))
+        else:
+            ui.configured("~/.local/bin on PATH (" + ", ".join(added) + ")")
+
 
 def _install_starship_config(opts: Options, config_dir: Path) -> None:
     """Copy the default theme's starship.toml into ~/.config if not already present.
@@ -597,6 +621,8 @@ def _install_starship_config(opts: Options, config_dir: Path) -> None:
     conf.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(pkg.starship, conf)
     ui.installed("~/.config/starship.toml (edit freely; ziro never overwrites)")
+
+
 def _create_local_config(opts: Options, config_dir: Path) -> None:
     ui.section("Creating .zshrc.local")
     local = config_dir / ".zshrc.local"
@@ -728,6 +754,8 @@ def _verify_install(opts: Options, config_dir: Path) -> bool:
         ui.warn(f"Run 'znap pull' or re-run 'ziro install' in {config_dir}")
     ui.success("Verification complete")
     return True
+
+
 def getting_started_lines() -> list[str]:
     lines = []
     if shutil.which("starship"):
