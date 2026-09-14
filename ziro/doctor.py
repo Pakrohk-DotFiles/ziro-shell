@@ -35,7 +35,8 @@ def doctor() -> int:
     checks.append(_check_plugins(config_dir))
     checks.append(_check_remote_origin(config_dir))
     checks.append(_check_zshrc_local(config_dir))
-    checks.append(_check_starship_toml())
+    checks.append(_check_starship_toml(config_dir))
+    checks.append(_check_cli_on_path())
 
     ui.section("Doctor results")
     failures = 0
@@ -155,7 +156,8 @@ def _check_plugins(config_dir: Path) -> Check:
     missing = [name for name, path in expected.items() if not path.is_dir()]
     if missing:
         return Check("plugins", False,
-                      f"missing: {', '.join(missing)} (run 'znap pull' to fetch)", warn=True)
+                      f"missing: {', '.join(missing)} (run 'ziro update' or 'znap pull' to fetch)",
+                      warn=True)
     return Check("plugins", True, "all core plugins present")
 
 
@@ -178,8 +180,24 @@ def _check_zshrc_local(config_dir: Path) -> Check:
     return Check(".zshrc.local", True, "not present (optional)", warn=True)
 
 
-def _check_starship_toml() -> Check:
+def _check_starship_toml(config_dir: Path) -> Check:
     conf = Path(os.path.expanduser("~")) / ".config" / "starship.toml"
     if conf.is_file():
         return Check("starship.toml", True, "present (user-owned; preserved)")
     return Check("starship.toml", True, "not present (will be created on first install)", warn=True)
+
+
+def _check_cli_on_path() -> Check:
+    """The user-facing contract: a fresh interactive shell finds `ziro`."""
+    import subprocess
+    cli = Path(os.path.expanduser("~")) / ".local" / "bin" / "ziro"
+    if not (cli.is_file() or cli.is_symlink()):
+        return Check("ziro CLI", False, f"{cli} missing (re-run 'ziro install')")
+    proc = subprocess.run(["zsh", "-ic", "command -v ziro"],
+                          capture_output=True, text=True)
+    # interactive zsh paints its prompt onto stdout; check for the resolved path
+    if ".local/bin/ziro" in proc.stdout:
+        return Check("ziro CLI", True, "on PATH (~/.local/bin/ziro)")
+    return Check("ziro CLI", False,
+                  "not resolvable in a new interactive shell; add ~/.local/bin to PATH "
+                  "(export PATH=\"$HOME/.local/bin:$PATH\" in ~/.zshenv)")

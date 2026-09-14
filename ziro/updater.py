@@ -2,6 +2,7 @@
 update-check state."""
 
 import os
+import subprocess
 import time
 from pathlib import Path
 
@@ -57,7 +58,12 @@ def update() -> int:
                 gitops.stash_pop(config_dir)
             return 1
 
+        _ensure_plugins(config_dir)
         _recompile(config_dir)
+        _heal_cli(config_dir)
+        _ensure_path()
+        _ensure_theme(config_dir)
+        ok = _verify_after_update()
         _refresh_check_state(config_dir)
     except RunError as exc:
         report_failure(exc)
@@ -66,15 +72,100 @@ def update() -> int:
             gitops.stash_pop(config_dir)
         return 1
 
-    ui.success("Update complete. Please reload your shell with: source ~/.zshrc")
+    if not ok:
+        ui.error("Update completed but verification failed. Run 'ziro doctor'.")
+        return 1
+    ui.success("Update complete. Reload your shell with: exec zsh -l")
     return 0
 
 
 def _recompile(config_dir: Path) -> None:
     ui.info("Compiling configurations for maximum speed...")
-    from .installer import ZSH_COMPILE_TARGETS, _final_compile, Options  # noqa: PLC0415
+    from .installer import _final_compile, Options  # noqa: PLC0415
     opts = Options()
     _final_compile(opts, config_dir)
+
+
+def _znap_plugin_dirs(config_dir: Path) -> list[Path]:
+    """Git clones znap created inside the config dir (owner/repo layout)."""
+    dirs: list[Path] = []
+    for child in config_dir.iterdir():
+        if not child.is_dir() or child.name.startswith((".", "_")) or child.name == "ziro":
+            continue
+        if (child / ".git").exists():
+            dirs.append(child)
+        else:
+            for sub in child.iterdir():
+                if sub.is_dir() and (sub / ".git").exists():
+                    dirs.append(sub)
+    return sorted(dirs)
+
+
+def _plugin_up_to_date(plugin: Path) -> bool:
+    proc = subprocess.run(["git", "pull", "--ff-only"], cwd=plugin,
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return proc.returncode == 0
+
+
+def _ensure_plugins(config_dir: Path) -> None:
+    """Update znap-managed plugin clones; the repo pull only covers dotfiles."""
+    ui.section("Updating plugins")
+    updated, failed = 0, []
+    for plugin in _znap_plugin_dirs(config_dir):
+        if _plugin_up_to_date(plugin):
+            updated += 1
+        else:
+            failed.append(plugin.relative_to(config_dir).as_posix())
+    ui.success(f"{updated} plugin(s) up to date")
+    for name in failed:
+        ui.warn(f"could not update plugin '{name}' (local divergence? re-clone: rm -rf {config_dir / name} && exec zsh -l)")
+
+
+def _heal_cli(config_dir: Path) -> None:
+    """Point ~/.local/bin/ziro at the current repo (fixes stale legacy links)."""
+    ui.section("CLI link")
+    from .installer import Options, _install_cli  # noqa: PLC0415
+    _install_cli(Options(), config_dir)
+
+
+def _ensure_path() -> None:
+    ui.section("PATH")
+    from .installer import _ensure_local_bin_on_path  # noqa: PLC0415
+    _ensure_local_bin_on_path(False)
+
+
+def _ensure_theme(config_dir: Path) -> None:
+    """Refresh an unmodified managed theme file; user edits are preserved."""
+    ui.section("Prompt theme")
+    from .installer import Options, _install_starship_config  # noqa: PLC0415
+    _install_starship_config(Options(), config_dir)
+
+
+def _verify_after_update() -> bool:
+    """Focused post-update check: the user must be able to run `ziro`.
+
+    Full health is `ziro doctor`'s job; here we only gate on the CLI being
+    resolvable in a fresh interactive shell (the real-world breakage)."""
+    ui.section("Verifying update")
+    cli = Path(os.path.expanduser("~")) / ".local" / "bin" / "ziro"
+    if cli.is_file() or cli.is_symlink():
+        proc = subprocess.run([str(cli), "--version"], capture_output=True, text=True)
+        if proc.returncode == 0:
+            ui.success(f"ziro CLI works ({proc.stdout.strip()})")
+        else:
+            ui.warn("ziro CLI present but 'ziro --version' failed")
+            return False
+    else:
+        ui.warn("ziro CLI missing at ~/.local/bin/ziro (re-run 'ziro install')")
+        return False
+    # interactive zsh paints its prompt on stdout; substring-match the resolved path
+    shell = subprocess.run(["zsh", "-ic", "command -v ziro"],
+                           capture_output=True, text=True)
+    if ".local/bin/ziro" not in shell.stdout:
+        ui.warn("`ziro` is not reachable in a fresh interactive shell; check PATH (~/.zshenv).")
+        return False
+    ui.success("Update verification passed")
+    return True
 
 
 def _refresh_check_state(config_dir: Path) -> None:

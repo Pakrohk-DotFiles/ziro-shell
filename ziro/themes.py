@@ -124,6 +124,11 @@ def _atomic_write(dest: Path, data: bytes) -> None:
         tmp.unlink(missing_ok=True)
 
 
+def write_atomic(dest: Path, data: bytes) -> None:
+    """Public wrapper for the atomic writer used by the installer."""
+    _atomic_write(dest, data)
+
+
 def apply(config_dir: Path, name: str, force: bool = False) -> int:
     """Apply a validated theme package to ~/.config/starship.toml."""
     themes = list_themes(config_dir)
@@ -144,7 +149,7 @@ def apply(config_dir: Path, name: str, force: bool = False) -> int:
         return 1
     _atomic_write(CONFIG_PATH, src.read_bytes())
     ui.configured(f"~/.config/starship.toml -> theme '{name}'")
-    ui.info("restart your terminal or run: source ~/.zshrc")
+    ui.info("restart your terminal or run: exec zsh -l")
     return 0
 
 

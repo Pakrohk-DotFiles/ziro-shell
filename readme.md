@@ -99,16 +99,34 @@ Requires Python 3.11 or later (the engine uses `tomllib` and PEP 604 unions). Us
 
 ## What the installer does
 
+The installer replaces your zsh config, so it never touches an existing setup
+without asking first. It lists every file it would back up (`.zshrc`,
+`.zprofile`, `.zshenv`, `.zimrc`, `.zpreztorc`, plus oh-my-zsh / prezto / zim
+directories) and aborts unless you confirm. Backups land beside the originals
+as `<file>.bak.<timestamp>`. Flags skip the prompt: `--overwrite` (or
+`--force`) backs up and continues, `--no-overwrite` aborts. `--non-interactive`
+defaults to back up and continue, so pair it with `--no-overwrite` if you would
+rather a scripted run fail than move your files.
+
 1. Detects your OS, distro, and package manager
 2. Installs system packages (zsh, git, curl, fzf, starship, and optionally rustup, go, node)
 3. Clones or pulls the Ziro repository into `~/.ziro`
 4. Migrates `~/.zsh_config` to `~/.ziro` if found (legacy support)
-5. Backs up existing `.zshrc`, `.zimrc`, `.zpreztorc`, `.zprofile`, `.zshenv` and framework directories
+5. Confirms, then backs up existing zsh config files and framework directories
 6. Symlinks `~/.zshrc` to `~/.ziro/.zshrc`
 7. Creates `.zshrc.local` with sensible defaults (preserves existing)
 8. Optionally changes the default shell to Zsh
 9. Compiles Zsh files for faster startup
-10. Verifies the installation loads without errors
+10. Installs the `ziro` launcher into `~/.local/bin` and puts that directory on
+    PATH via `~/.zshenv`, so a brand-new terminal can run it
+11. Verifies the installation: zsh loads without errors, plugins are present,
+    and `ziro` resolves in a fresh interactive shell
+12. Prints `Installation Completed Successfully!` only when every check passes;
+    otherwise it exits non-zero and points you at `ziro doctor`
+
+After a successful install, open a new terminal window or run `exec zsh -l`.
+Plain `source ~/.zshrc` does not reload `~/.zshenv` or `chsh`, so the new shell
+setup will look half-applied if you use it.
 
 ## Security
 
@@ -142,7 +160,10 @@ export EDITOR='nvim'
 export BROWSER='firefox'
 ```
 
-The installer never modifies `.zshrc.local` if it already exists. Your Starship configuration (`~/.config/starship.toml`) is also preserved if you customize it.
+The installer never modifies `.zshrc.local` if it already exists. The same
+ownership rule applies to `~/.config/starship.toml`: once you edit it, ziro
+never overwrites it. An untouched managed copy is refreshed on update so
+upstream theme fixes reach you.
 
 ### Theme packages
 
@@ -155,7 +176,9 @@ themes/
     └── starship.toml   # the prompt config
 ```
 
-- `ziro install` copies the default theme (`lambda`) to `~/.config/starship.toml` on first install.
+- `ziro install` copies the default theme (`themes/lambda/Starship.toml`) to
+  `~/.config/starship.toml` on first install; `--theme <name>` picks another.
+  `ziro update` refreshes that copy only while it still matches what ziro wrote.
 - `ziro theme apply <name>` switches themes. It refuses to overwrite a config that differs from the target theme; add `--force` to overwrite anyway.
 - `ziro theme list` shows available packages.
 

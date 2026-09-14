@@ -45,6 +45,8 @@ class Options:
     enable_ssh_agent: bool | None = None
     enable_update_check: bool | None = None
     enable_nmap: bool | None = None
+    # Overwrite policy: None = ask interactively, True = backup+replace, False = abort
+    overwrite: bool | None = None
     # Theme
     theme: str | None = None
 
@@ -173,6 +175,65 @@ def _home() -> Path:
     return Path(os.path.expanduser("~"))
 
 
+def _backup_suffix() -> str:
+    return time.strftime("%Y%m%d%H%M%S")
+
+
+def _detect_conflicts() -> list[str]:
+    """Existing dotfiles/frameworks that install would back up or replace."""
+    home = _home()
+    conflicts: list[str] = []
+    for name in MANAGED_CONFIGS:
+        f = home / f".{name}"
+        if f.is_symlink():
+            try:
+                if f.resolve() == (home / gitops.NEW_DIR / f".{name}").resolve():
+                    continue  # our own correct link; nothing to back up
+            except OSError:
+                pass
+            conflicts.append(f".{name} (symlink)")
+        elif f.is_file():
+            conflicts.append(f".{name}")
+    for fw in MANAGED_FRAMEWORKS:
+        d = home / fw
+        if d.is_dir() and not d.is_symlink():
+            conflicts.append(f"{fw}/")
+    return conflicts
+
+
+def _preflight(opts: Options) -> bool:
+    """Honor the original installer's conflict gate: show what gets backed
+    up, then let the user replace it (backup + continue) or abort.
+
+    None asks interactively; --force means always replace; --no-overwrite
+    means abort. Without a terminal the safe default is to abort."""
+    conflicts = _detect_conflicts()
+    if not conflicts:
+        ui.present("no existing zsh config to replace")
+        return True
+
+    ui.section("Existing files detected")
+    ui.warn("Ziro manages your zsh config and needs to replace existing files.")
+    ui.info("The following will be backed up before anything changes:")
+    for c in conflicts:
+        ui.info(f"  - {c}")
+
+    if opts.overwrite is None and opts.non_interactive:
+        opts.overwrite = True
+
+    if opts.overwrite is None:
+        if opts.dry_run:
+            ui.info("Would ask whether to back up and replace the files above")
+            return True
+        opts.overwrite = ui.confirm("Back them up and continue?", default_yes=False)
+
+    if opts.overwrite:
+        return True
+    if not opts.dry_run:
+        ui.error("Aborted: nothing was changed.")
+    return False
+
+
 def install(opts: Options) -> int:
     plat = platform_mod.detect()
 
@@ -209,6 +270,8 @@ def install(opts: Options) -> int:
             ui.error(f"Cannot install into {exc}; resolve it manually.")
             return 1
         if config_dir is None:
+            return 1
+        if not _preflight(opts):
             return 1
         _backup_existing(opts)
         if not _link_zshrc(opts, config_dir):
@@ -398,13 +461,16 @@ def _relink_after_migration(config_dir: Path) -> None:
 def _backup_existing(opts: Options) -> None:
     ui.section("Backing up existing configuration")
     home = _home()
-    suffix = f".bak.{time.strftime('%Y%m%d%H%M%S')}"
+    suffix = f".bak.{_backup_suffix()}"
     backed_up = 0
 
     for name in MANAGED_CONFIGS:
         conf = home / f".{name}"
         if conf.is_symlink():
-            ui.info(f"Removing symlink .{name}")
+            target = os.readlink(conf)
+            if target == str(home / gitops.NEW_DIR / f".{name}"):
+                continue  # our own link; leave it in place
+            ui.info(f"Removing symlink .{name} -> {target}")
             if not opts.dry_run:
                 conf.unlink()
         elif conf.is_file():
@@ -423,7 +489,7 @@ def _backup_existing(opts: Options) -> None:
 
     if backed_up:
         ui.success("Backup complete")
-    else:
+    elif not opts.dry_run:
         ui.present("no conflicting config found")
 
 
@@ -509,7 +575,6 @@ def _ensure_local_bin_on_path(dry_run: bool) -> None:
         f.write(f"\n{marker}\n{guard}\n")
     ui.configured("~/.local/bin on PATH in .zshrc.local")
 
-
 def _install_starship_config(opts: Options, config_dir: Path) -> None:
     """Copy the default theme's starship.toml into ~/.config if not already present.
 
@@ -532,8 +597,6 @@ def _install_starship_config(opts: Options, config_dir: Path) -> None:
     conf.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(pkg.starship, conf)
     ui.installed("~/.config/starship.toml (edit freely; ziro never overwrites)")
-
-
 def _create_local_config(opts: Options, config_dir: Path) -> None:
     ui.section("Creating .zshrc.local")
     local = config_dir / ".zshrc.local"
@@ -665,8 +728,6 @@ def _verify_install(opts: Options, config_dir: Path) -> bool:
         ui.warn(f"Run 'znap pull' or re-run 'ziro install' in {config_dir}")
     ui.success("Verification complete")
     return True
-
-
 def getting_started_lines() -> list[str]:
     lines = []
     if shutil.which("starship"):
