@@ -599,28 +599,80 @@ def _ensure_local_bin_on_path(dry_run: bool) -> None:
             ui.configured("~/.local/bin on PATH (" + ", ".join(added) + ")")
 
 
-def _install_starship_config(opts: Options, config_dir: Path) -> None:
-    """Copy the default theme's starship.toml into ~/.config if not already present.
+def _theme_stamp() -> Path:
+    return _home() / ".config" / ".ziro-starship.sha256"
 
-    Never overwrites an existing file — user edits survive installs and
-    updates. `ziro doctor` reports a missing config as a warning.
-    Default theme package: themes/lambda (see `ziro theme apply <name>`).
+
+def _theme_is_managed(conf: Path) -> bool:
+    """True when the installed file is byte-identical to what ziro wrote.
+
+    New installs leave a hash stamp; copies made by older ziro versions are
+    recognized by matching any bundled theme byte-for-byte."""
+    import hashlib
+    stamp = _theme_stamp()
+    if not conf.is_file():
+        return False
+    current = conf.read_bytes()
+    if stamp.is_file() and stamp.read_text().strip() == hashlib.sha256(current).hexdigest():
+        return True
+    from . import gitops  # noqa: PLC0415
+    return any(p.starship.is_file() and current == p.starship.read_bytes()
+               for p in themes.list_themes(gitops.resolve_config_dir()).values())
+
+
+def _write_theme_stamp(conf: Path) -> None:
+    import hashlib
+    _theme_stamp().write_text(hashlib.sha256(conf.read_bytes()).hexdigest() + "\n")
+
+
+def _install_starship_config(opts: Options, config_dir: Path) -> None:
+    """Put the chosen theme's starship.toml at ~/.config/starship.toml.
+
+    - Missing file: install the default (themes/lambda) or --theme choice.
+    - Present and untouched since ziro wrote it (hash stamp matches): refresh
+      it, so upstream theme fixes actually reach users after an update.
+    - Anything else: user-owned, never touched (same policy as .zshrc.local).
     """
     ui.section("Prompt config")
     conf = _home() / ".config" / "starship.toml"
-    if conf.exists():
-        ui.present("~/.config/starship.toml (preserved, user-owned)")
+    name = opts.theme or themes.DEFAULT_THEME
+    themes_pkgs = themes.list_themes(config_dir)
+    if opts.theme and opts.theme not in themes_pkgs:
+        ui.error(f"unknown theme '{opts.theme}'. Available: {', '.join(themes_pkgs) or 'none'}")
+        return
+    if conf.exists() or conf.is_symlink():
+        if conf.is_symlink():
+            ui.warn(f"{conf} is a symlink; not touching it.")
+            return
+        pkg = themes_pkgs.get(name)
+        if pkg is None:
+            ui.skipped(f"no valid theme package (themes/{name}); leaving config as is")
+            return
+        desired = pkg.starship.read_bytes()
+        if conf.read_bytes() == desired:
+            ui.present("~/.config/starship.toml (already current theme)")
+            return
+        if not _theme_is_managed(conf):
+            ui.present("~/.config/starship.toml (preserved, user-owned)")
+            return
+        if opts.dry_run:
+            ui.info(f"Would refresh managed theme file -> '{name}'")
+            return
+        themes.write_atomic(conf, desired)
+        _write_theme_stamp(conf)
+        ui.updated(f"~/.config/starship.toml -> theme '{name}' (managed copy refreshed)")
         return
     if opts.dry_run:
-        ui.info(f"Would copy default theme (themes/{themes.DEFAULT_THEME}) -> {conf}")
+        ui.info(f"Would copy theme (themes/{name}) -> {conf}")
         return
-    pkg = themes.list_themes(config_dir).get(themes.DEFAULT_THEME)
+    pkg = themes_pkgs.get(name)
     if pkg is None:
-        ui.skipped(f"no valid default theme package (themes/{themes.DEFAULT_THEME}); skipping")
+        ui.skipped(f"no valid theme package (themes/{name}); skipping")
         return
     conf.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(pkg.starship, conf)
-    ui.installed("~/.config/starship.toml (edit freely; ziro never overwrites)")
+    _write_theme_stamp(conf)
+    ui.installed(f"~/.config/starship.toml from theme '{name}' (edit freely; ziro never overwrites user edits)")
 
 
 def _create_local_config(opts: Options, config_dir: Path) -> None:

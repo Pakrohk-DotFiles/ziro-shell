@@ -86,6 +86,8 @@ def build_parser() -> argparse.ArgumentParser:
                            default=None, help="back up and replace existing zsh config (skip prompt)")
     p_install.add_argument("--no-overwrite", dest="overwrite", action="store_false",
                            help="abort if existing zsh config files are found")
+    p_install.add_argument("--theme", dest="theme", metavar="NAME", default=None,
+                           help="apply this theme package on install (see: ziro theme list)")
 
     p_theme = sub.add_parser("theme", help="list or apply prompt theme packages")
     p_theme_sub = p_theme.add_subparsers(dest="theme_command")
@@ -133,6 +135,7 @@ def main(argv: list[str] | None = None) -> int:
             enable_update_check=args.enable_update_check,
             enable_nmap=args.enable_nmap,
             overwrite=args.overwrite,
+            theme=args.theme,
         )
         return install(opts)
 

@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from ziro import installer  # noqa: E402
+from ziro import installer, themes  # noqa: E402
 from ziro.installer import Options, _detect_conflicts, _preflight  # noqa: E402
 
 
@@ -168,6 +168,70 @@ class TestPathHeal(unittest.TestCase):
     def test_dry_run_writes_nothing(self):
         installer._ensure_local_bin_on_path(True)
         self.assertFalse((self.home / ".zshenv").exists())
+
+
+class TestThemeInstall(unittest.TestCase):
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp(prefix="ziro-theme-"))
+        self.repo = self.home / ".ziro"
+        shutil.copytree(Path(__file__).resolve().parents[2] / "themes",
+                        self.repo / "themes")
+        (self.home / ".config").mkdir()
+        self._orig_home = installer._home
+        installer._home = lambda: self.home
+
+    def tearDown(self):
+        installer._home = self._orig_home
+        shutil.rmtree(self.home)
+
+    def test_fresh_install_places_default_theme(self):
+        installer._install_starship_config(Options(), self.repo)
+        conf = self.home / ".config" / "starship.toml"
+        self.assertTrue(conf.is_file())
+        self.assertEqual(conf.read_bytes(),
+                         (self.repo / "themes" / "lambda" / "Starship.toml").read_bytes())
+
+    def test_user_edits_survive_reinstall(self):
+        conf = self.home / ".config" / "starship.toml"
+        conf.write_text("# my custom config\n")
+        installer._install_starship_config(Options(), self.repo)
+        self.assertEqual(conf.read_text(), "# my custom config\n")
+
+    def test_managed_copy_refreshed_on_upgrade(self):
+        conf = self.home / ".config" / "starship.toml"
+        installer._install_starship_config(Options(), self.repo)
+        theme = self.repo / "themes" / "lambda" / "Starship.toml"
+        theme.write_bytes(theme.read_bytes() + b"\n# upstream change\n")
+        installer._install_starship_config(Options(), self.repo)
+        self.assertEqual(conf.read_bytes(), theme.read_bytes())
+
+    def test_switch_theme_with_flag(self):
+        names = list(themes.list_themes(self.repo))
+        other = next((n for n in names if n != themes.DEFAULT_THEME), None)
+        if other is None:
+            self.skipTest("only one bundled theme")
+        conf = self.home / ".config" / "starship.toml"
+        installer._install_starship_config(Options(), self.repo)
+        installer._install_starship_config(Options(theme=other), self.repo)
+        self.assertEqual(conf.read_bytes(),
+                         (self.repo / "themes" / other / "Starship.toml").read_bytes())
+
+    def test_symlinked_config_untouched(self):
+        conf = self.home / ".config" / "starship.toml"
+        real = self.home / "real.toml"
+        real.write_text("keep\n")
+        conf.symlink_to(real)
+        installer._install_starship_config(Options(), self.repo)
+        self.assertTrue(conf.is_symlink())
+        self.assertEqual(real.read_text(), "keep\n")
+
+    def test_unknown_theme_rejected(self):
+        installer._install_starship_config(Options(theme="nope"), self.repo)
+        self.assertFalse((self.home / ".config" / "starship.toml").exists())
+
+    def test_dry_run_writes_nothing(self):
+        installer._install_starship_config(Options(dry_run=True), self.repo)
+        self.assertFalse((self.home / ".config" / "starship.toml").exists())
 
 
 if __name__ == "__main__":
