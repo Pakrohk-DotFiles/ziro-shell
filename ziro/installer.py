@@ -286,6 +286,8 @@ def install(opts: Options) -> int:
         _change_shell(opts, plat)
         _final_compile(opts, config_dir)
         if not _verify_install(opts, config_dir):
+            ui.error("Installation finished with problems; see messages above.")
+            ui.info("Run 'ziro doctor' for details, then re-run 'ziro install'.")
             return 1
     except RunError as exc:
         report_failure(exc)
@@ -765,47 +767,65 @@ def _final_compile(opts: Options, config_dir: Path) -> None:
 
 
 def _verify_install(opts: Options, config_dir: Path) -> bool:
-    """Verify installation: zsh loads, plugins present, CLI executable."""
+    """Verify installation: CLI runnable, zsh loads, files in place."""
     ui.section("Verifying installation")
     if opts.dry_run:
         ui.info("Would verify zsh startup and CLI")
         return True
 
-    # run the installed CLI
+    ok = True
+    # `ziro --version` spawns nothing, so capturing it through a pipe is safe
     cli = _home() / ".local" / "bin" / "ziro"
-    if cli.is_symlink():
+    cli_present = cli.is_file()
+    if cli_present:
         engine_dir = cli.resolve().parent / "ziro"
         if engine_dir.is_dir():
-            try:
-                out = capture([str(cli), "--version"], check=False)
-                if out:
-                    ui.success(f"CLI works: {out.strip()}")
-                else:
-                    ui.warn(f"{cli} --version produced no output")
-            except Exception:
-                ui.warn(f"{cli} --version could not run")
+            out = capture([str(cli), "--version"], check=False)
+            if out:
+                ui.success(f"CLI works: {out.strip()}")
+            else:
+                ui.warn(f"{cli} --version produced no output")
+                ok = False
         else:
             ui.info("CLI link present; engine not available (skipping exec check)")
     else:
         ui.warn(f"{cli} not found; CLI version check skipped")
 
-    # zsh startup
-    if quiet(["zsh", "-ic", "echo ZSH_OK"]):
+    # New shells must resolve `ziro`. The export lives in ~/.zshenv, which zsh
+    # sources before .zshrc in every mode, so a plain `zsh -c` proves the PATH
+    # heal without cloning the plugin tree. Only a hard failure when this run
+    # installed the CLI (legacy seed repos skip it on purpose).
+    if cli_present:
+        if quiet(["zsh", "-c", "command -v ziro"]):
+            ui.success("ziro is on PATH in new shells")
+        else:
+            ui.failed("new shells cannot find ziro on PATH")
+            ok = False
+
+    conf = _home() / ".config" / "starship.toml"
+    if conf.is_file():
+        ui.success("starship.toml installed (~/.config/starship.toml)")
+    else:
+        ui.warn("no ~/.config/starship.toml (theme not applied)")
+
+    # Full interactive startup clones plugins over the network on first run;
+    # issues there stay a warning, same as before. `exit 0` is required: zsh
+    # -ic reads the tty after the command string and would never return in a
+    # terminal session, and timeout= bounds first-run network fan-out.
+    # (Never pipe a plugin-loaded shell instead: long-lived grandchildren
+    # keep the pipe open and hang the read.)
+    if quiet(["zsh", "-ic", "echo ZSH_OK; exit 0"], timeout=180):
         ui.success("Zsh loads without errors")
     else:
         ui.warn("Zsh startup reported issues (check plugins/dependencies)")
 
-    plugins = {
-        "fast-syntax-highlighting": config_dir / "zdharma-continuum" / "fast-syntax-highlighting",
-        "zsh-autosuggestions": config_dir / "zsh-users" / "zsh-autosuggestions",
-        "zsh-completions": config_dir / "zsh-users" / "zsh-completions",
-    }
-    missing = [name for name, path in plugins.items() if not path.is_dir()]
-    if missing:
-        ui.warn(f"Missing plugins: {', '.join(missing)}")
-        ui.warn(f"Run 'znap pull' or re-run 'ziro install' in {config_dir}")
-    ui.success("Verification complete")
-    return True
+    znap = config_dir / "znap" / "znap.zsh"
+    if znap.is_file():
+        ui.success("znap plugin manager present")
+    else:
+        ui.warn("znap not cloned yet (first shell launch pulls it)")
+
+    return ok
 
 
 def getting_started_lines() -> list[str]:
