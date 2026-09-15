@@ -45,6 +45,8 @@ class Options:
     enable_ssh_agent: bool | None = None
     enable_update_check: bool | None = None
     enable_nmap: bool | None = None
+    # Overwrite policy: None = ask interactively, True = backup+replace, False = abort
+    overwrite: bool | None = None
     # Theme
     theme: str | None = None
 
@@ -173,6 +175,65 @@ def _home() -> Path:
     return Path(os.path.expanduser("~"))
 
 
+def _backup_suffix() -> str:
+    return time.strftime("%Y%m%d%H%M%S")
+
+
+def _detect_conflicts() -> list[str]:
+    """Existing dotfiles/frameworks that install would back up or replace."""
+    home = _home()
+    conflicts: list[str] = []
+    for name in MANAGED_CONFIGS:
+        f = home / f".{name}"
+        if f.is_symlink():
+            try:
+                if f.resolve() == (home / gitops.NEW_DIR / f".{name}").resolve():
+                    continue  # our own correct link; nothing to back up
+            except OSError:
+                pass
+            conflicts.append(f".{name} (symlink)")
+        elif f.is_file():
+            conflicts.append(f".{name}")
+    for fw in MANAGED_FRAMEWORKS:
+        d = home / fw
+        if d.is_dir() and not d.is_symlink():
+            conflicts.append(f"{fw}/")
+    return conflicts
+
+
+def _preflight(opts: Options) -> bool:
+    """Honor the original installer's conflict gate: show what gets backed
+    up, then let the user replace it (backup + continue) or abort.
+
+    None asks interactively; --force means always replace; --no-overwrite
+    means abort. Without a terminal the safe default is to abort."""
+    conflicts = _detect_conflicts()
+    if not conflicts:
+        ui.present("no existing zsh config to replace")
+        return True
+
+    ui.section("Existing files detected")
+    ui.warn("Ziro manages your zsh config and needs to replace existing files.")
+    ui.info("The following will be backed up before anything changes:")
+    for c in conflicts:
+        ui.info(f"  - {c}")
+
+    if opts.overwrite is None and opts.non_interactive:
+        opts.overwrite = True
+
+    if opts.overwrite is None:
+        if opts.dry_run:
+            ui.info("Would ask whether to back up and replace the files above")
+            return True
+        opts.overwrite = ui.confirm("Back them up and continue?", default_yes=False)
+
+    if opts.overwrite:
+        return True
+    if not opts.dry_run:
+        ui.error("Aborted: nothing was changed.")
+    return False
+
+
 def install(opts: Options) -> int:
     plat = platform_mod.detect()
 
@@ -210,6 +271,8 @@ def install(opts: Options) -> int:
             return 1
         if config_dir is None:
             return 1
+        if not _preflight(opts):
+            return 1
         _backup_existing(opts)
         if not _link_zshrc(opts, config_dir):
             return 1
@@ -223,6 +286,8 @@ def install(opts: Options) -> int:
         _change_shell(opts, plat)
         _final_compile(opts, config_dir)
         if not _verify_install(opts, config_dir):
+            ui.error("Installation finished with problems; see messages above.")
+            ui.info("Run 'ziro doctor' for details, then re-run 'ziro install'.")
             return 1
     except RunError as exc:
         report_failure(exc)
@@ -398,13 +463,16 @@ def _relink_after_migration(config_dir: Path) -> None:
 def _backup_existing(opts: Options) -> None:
     ui.section("Backing up existing configuration")
     home = _home()
-    suffix = f".bak.{time.strftime('%Y%m%d%H%M%S')}"
+    suffix = f".bak.{_backup_suffix()}"
     backed_up = 0
 
     for name in MANAGED_CONFIGS:
         conf = home / f".{name}"
         if conf.is_symlink():
-            ui.info(f"Removing symlink .{name}")
+            target = os.readlink(conf)
+            if target == str(home / gitops.NEW_DIR / f".{name}"):
+                continue  # our own link; leave it in place
+            ui.info(f"Removing symlink .{name} -> {target}")
             if not opts.dry_run:
                 conf.unlink()
         elif conf.is_file():
@@ -423,7 +491,7 @@ def _backup_existing(opts: Options) -> None:
 
     if backed_up:
         ui.success("Backup complete")
-    else:
+    elif not opts.dry_run:
         ui.present("no conflicting config found")
 
 
@@ -493,45 +561,120 @@ def _install_cli(opts: Options, config_dir: Path) -> bool:
     return True
 
 
+_PATH_MARKER = "# Add ~/.local/bin to PATH (set by ziro install)"
+_PATH_GUARD = '[[ ":$PATH:" != *":$HOME/.local/bin:"* ]] && export PATH="$HOME/.local/bin:$PATH"'
+_PATH_EXPORT = 'export PATH="$HOME/.local/bin:$PATH"'
+
+
 def _ensure_local_bin_on_path(dry_run: bool) -> None:
-    """Append a guarded PATH line to .zshrc.local if not already present."""
-    local = _home() / ".ziro" / ".zshrc.local"
-    guard = '[[ ":$PATH:" != *":$HOME/.local/bin:"* ]] && export PATH="$HOME/.local/bin:$PATH"'
-    marker = "# Add ~/.local/bin to PATH (set by ziro install)"
+    """Make ~/.local/bin/ziro reachable from fresh shells.
+
+    - ~/.zshenv runs before .zshrc in every zsh (interactive or not), so an
+      unguarded export there makes `ziro` resolvable immediately, including
+      inside non-login `zsh -c` checks.
+    - .zshrc.local keeps the guarded form for users who manage their own PATH.
+    """
+    added = []
+    config_dir = gitops.resolve_config_dir()
+    zshenv = _home() / ".zshenv"
+    if not (zshenv.is_file() and _PATH_EXPORT in zshenv.read_text(encoding="utf-8", errors="replace")):
+        if not dry_run:
+            if zshenv.exists() and not zshenv.is_symlink():
+                ui.info(f"Appending PATH line to existing {zshenv}")
+            with open(zshenv, "a") as f:
+                f.write(f"\n{_PATH_MARKER}\n{_PATH_EXPORT}\n")
+        added.append("~/.zshenv")
+
+    local = config_dir / ".zshrc.local"
     if local.is_file():
         text = local.read_text(encoding="utf-8", errors="replace")
-        if marker in text or 'export PATH="$HOME/.local/bin' in text:
-            return
-    if dry_run:
-        ui.info("Would ensure ~/.local/bin is on PATH in .zshrc.local")
-        return
-    with open(local, "a") as f:
-        f.write(f"\n{marker}\n{guard}\n")
-    ui.configured("~/.local/bin on PATH in .zshrc.local")
+        if _PATH_MARKER not in text and 'export PATH="$HOME/.local/bin' not in text:
+            if not dry_run:
+                with open(local, "a") as f:
+                    f.write(f"\n{_PATH_MARKER}\n{_PATH_GUARD}\n")
+            added.append(".zshrc.local")
+
+    if added:
+        if dry_run:
+            ui.info("Would ensure ~/.local/bin on PATH in " + " and ".join(added))
+        else:
+            ui.configured("~/.local/bin on PATH (" + ", ".join(added) + ")")
+
+
+def _theme_stamp() -> Path:
+    return _home() / ".config" / ".ziro-starship.sha256"
+
+
+def _theme_is_managed(conf: Path) -> bool:
+    """True when the installed file is byte-identical to what ziro wrote.
+
+    New installs leave a hash stamp; copies made by older ziro versions are
+    recognized by matching any bundled theme byte-for-byte."""
+    import hashlib
+    stamp = _theme_stamp()
+    if not conf.is_file():
+        return False
+    current = conf.read_bytes()
+    if stamp.is_file() and stamp.read_text().strip() == hashlib.sha256(current).hexdigest():
+        return True
+    from . import gitops  # noqa: PLC0415
+    return any(p.starship.is_file() and current == p.starship.read_bytes()
+               for p in themes.list_themes(gitops.resolve_config_dir()).values())
+
+
+def _write_theme_stamp(conf: Path) -> None:
+    import hashlib
+    _theme_stamp().write_text(hashlib.sha256(conf.read_bytes()).hexdigest() + "\n")
 
 
 def _install_starship_config(opts: Options, config_dir: Path) -> None:
-    """Copy the default theme's starship.toml into ~/.config if not already present.
+    """Put the chosen theme's starship.toml at ~/.config/starship.toml.
 
-    Never overwrites an existing file — user edits survive installs and
-    updates. `ziro doctor` reports a missing config as a warning.
-    Default theme package: themes/lambda (see `ziro theme apply <name>`).
+    - Missing file: install the default (themes/lambda) or --theme choice.
+    - Present and untouched since ziro wrote it (hash stamp matches): refresh
+      it, so upstream theme fixes actually reach users after an update.
+    - Anything else: user-owned, never touched (same policy as .zshrc.local).
     """
     ui.section("Prompt config")
     conf = _home() / ".config" / "starship.toml"
-    if conf.exists():
-        ui.present("~/.config/starship.toml (preserved, user-owned)")
+    name = opts.theme or themes.DEFAULT_THEME
+    themes_pkgs = themes.list_themes(config_dir)
+    if opts.theme and opts.theme not in themes_pkgs:
+        ui.error(f"unknown theme '{opts.theme}'. Available: {', '.join(themes_pkgs) or 'none'}")
+        return
+    if conf.exists() or conf.is_symlink():
+        if conf.is_symlink():
+            ui.warn(f"{conf} is a symlink; not touching it.")
+            return
+        pkg = themes_pkgs.get(name)
+        if pkg is None:
+            ui.skipped(f"no valid theme package (themes/{name}); leaving config as is")
+            return
+        desired = pkg.starship.read_bytes()
+        if conf.read_bytes() == desired:
+            ui.present("~/.config/starship.toml (already current theme)")
+            return
+        if not _theme_is_managed(conf):
+            ui.present("~/.config/starship.toml (preserved, user-owned)")
+            return
+        if opts.dry_run:
+            ui.info(f"Would refresh managed theme file -> '{name}'")
+            return
+        themes.write_atomic(conf, desired)
+        _write_theme_stamp(conf)
+        ui.updated(f"~/.config/starship.toml -> theme '{name}' (managed copy refreshed)")
         return
     if opts.dry_run:
-        ui.info(f"Would copy default theme (themes/{themes.DEFAULT_THEME}) -> {conf}")
+        ui.info(f"Would copy theme (themes/{name}) -> {conf}")
         return
-    pkg = themes.list_themes(config_dir).get(themes.DEFAULT_THEME)
+    pkg = themes_pkgs.get(name)
     if pkg is None:
-        ui.skipped(f"no valid default theme package (themes/{themes.DEFAULT_THEME}); skipping")
+        ui.skipped(f"no valid theme package (themes/{name}); skipping")
         return
     conf.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(pkg.starship, conf)
-    ui.installed("~/.config/starship.toml (edit freely; ziro never overwrites)")
+    _write_theme_stamp(conf)
+    ui.installed(f"~/.config/starship.toml from theme '{name}' (edit freely; ziro never overwrites user edits)")
 
 
 def _create_local_config(opts: Options, config_dir: Path) -> None:
@@ -624,47 +767,65 @@ def _final_compile(opts: Options, config_dir: Path) -> None:
 
 
 def _verify_install(opts: Options, config_dir: Path) -> bool:
-    """Verify installation: zsh loads, plugins present, CLI executable."""
+    """Verify installation: CLI runnable, zsh loads, files in place."""
     ui.section("Verifying installation")
     if opts.dry_run:
         ui.info("Would verify zsh startup and CLI")
         return True
 
-    # run the installed CLI
+    ok = True
+    # `ziro --version` spawns nothing, so capturing it through a pipe is safe
     cli = _home() / ".local" / "bin" / "ziro"
-    if cli.is_symlink():
+    cli_present = cli.is_file()
+    if cli_present:
         engine_dir = cli.resolve().parent / "ziro"
         if engine_dir.is_dir():
-            try:
-                out = capture([str(cli), "--version"], check=False)
-                if out:
-                    ui.success(f"CLI works: {out.strip()}")
-                else:
-                    ui.warn(f"{cli} --version produced no output")
-            except Exception:
-                ui.warn(f"{cli} --version could not run")
+            out = capture([str(cli), "--version"], check=False)
+            if out:
+                ui.success(f"CLI works: {out.strip()}")
+            else:
+                ui.warn(f"{cli} --version produced no output")
+                ok = False
         else:
             ui.info("CLI link present; engine not available (skipping exec check)")
     else:
         ui.warn(f"{cli} not found; CLI version check skipped")
 
-    # zsh startup
-    if quiet(["zsh", "-ic", "echo ZSH_OK"]):
+    # New shells must resolve `ziro`. The export lives in ~/.zshenv, which zsh
+    # sources before .zshrc in every mode, so a plain `zsh -c` proves the PATH
+    # heal without cloning the plugin tree. Only a hard failure when this run
+    # installed the CLI (legacy seed repos skip it on purpose).
+    if cli_present:
+        if quiet(["zsh", "-c", "command -v ziro"]):
+            ui.success("ziro is on PATH in new shells")
+        else:
+            ui.failed("new shells cannot find ziro on PATH")
+            ok = False
+
+    conf = _home() / ".config" / "starship.toml"
+    if conf.is_file():
+        ui.success("starship.toml installed (~/.config/starship.toml)")
+    else:
+        ui.warn("no ~/.config/starship.toml (theme not applied)")
+
+    # Full interactive startup clones plugins over the network on first run;
+    # issues there stay a warning, same as before. `exit 0` is required: zsh
+    # -ic reads the tty after the command string and would never return in a
+    # terminal session, and timeout= bounds first-run network fan-out.
+    # (Never pipe a plugin-loaded shell instead: long-lived grandchildren
+    # keep the pipe open and hang the read.)
+    if quiet(["zsh", "-ic", "echo ZSH_OK; exit 0"], timeout=180):
         ui.success("Zsh loads without errors")
     else:
         ui.warn("Zsh startup reported issues (check plugins/dependencies)")
 
-    plugins = {
-        "fast-syntax-highlighting": config_dir / "zdharma-continuum" / "fast-syntax-highlighting",
-        "zsh-autosuggestions": config_dir / "zsh-users" / "zsh-autosuggestions",
-        "zsh-completions": config_dir / "zsh-users" / "zsh-completions",
-    }
-    missing = [name for name, path in plugins.items() if not path.is_dir()]
-    if missing:
-        ui.warn(f"Missing plugins: {', '.join(missing)}")
-        ui.warn(f"Run 'znap pull' or re-run 'ziro install' in {config_dir}")
-    ui.success("Verification complete")
-    return True
+    znap = config_dir / "znap" / "znap.zsh"
+    if znap.is_file():
+        ui.success("znap plugin manager present")
+    else:
+        ui.warn("znap not cloned yet (first shell launch pulls it)")
+
+    return ok
 
 
 def getting_started_lines() -> list[str]:

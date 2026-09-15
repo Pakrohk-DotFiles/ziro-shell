@@ -5,14 +5,17 @@ $ErrorActionPreference = "Stop"
 
 $repoUrl = "https://github.com/Pakrohk-DotFiles/ziro-shell.git"
 
-# --- Locate Python 3 ---
+# --- Locate Python 3.11+ (engine needs tomllib) ---
 $python = $null
 foreach ($c in @("python3", "py", "python")) {
     $cmd = Get-Command $c -ErrorAction SilentlyContinue
-    if ($cmd) { $python = $cmd.Source; break }
+    if (-not $cmd) { continue }
+    $verCheck = & $cmd.Source -c "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)" 2>$null
+    if ($LASTEXITCODE -eq 0) { $python = $cmd.Source; break }
 }
 if (-not $python) {
-    Write-Host "error: Python 3 is required. Install python3 and retry." -ForegroundColor Red
+    Write-Host "error: Python 3.11 or later is required (engine uses tomllib)." -ForegroundColor Red
+    Write-Host "  Install from https://www.python.org/downloads/ or: winget install Python.Python.3.12" -ForegroundColor Yellow
     exit 1
 }
 

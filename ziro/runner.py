@@ -35,9 +35,19 @@ def capture(cmd: Sequence[str], check: bool = True) -> str:
     return run(cmd, check=check, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.strip()
 
 
-def quiet(cmd: Sequence[str]) -> bool:
-    """Run cmd, return True on exit code 0 (all output discarded)."""
-    return run(cmd, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+def quiet(cmd: Sequence[str], timeout: float | None = None) -> bool:
+    """Run cmd, return True on exit code 0 or timeout (all output discarded).
+
+    Interactive zsh can hang without `exit 0` in its command string (it grabs
+    the tty after the -c code), and first-run plugin clones hit the network,
+    so callers probing a user shell should pass a timeout.
+    """
+    try:
+        proc = run(cmd, check=False, stdout=subprocess.DEVNULL,
+                   stderr=subprocess.DEVNULL, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return False
+    return proc.returncode == 0
 
 
 def sudo_prefix(sudo: str | None) -> list[str]:

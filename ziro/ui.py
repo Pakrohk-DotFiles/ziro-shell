@@ -85,14 +85,28 @@ def prompt(msg: str) -> None:
     print(f"{BOLD}{msg}{RESET} ", end="", flush=True)
 
 
+def _read_line() -> str:
+    """Read one line from the controlling terminal.
+
+    curl|bash pipelines leave stdin bound to the script text, so answer
+    from /dev/tty when present; otherwise fall back to stdin.
+    """
+    try:
+        with open("/dev/tty", "r") as tty:
+            return tty.readline()
+    except OSError:
+        try:
+            return input()
+        except EOFError:
+            return ""
+
+
 def confirm(question: str, default_yes: bool = True) -> bool:
     if not sys.stdin.isatty():
         return default_yes
-    prompt(f"{question} [Y/n] " if default_yes else f"{question} [y/N] ")
-    try:
-        answer = input().strip().lower()
-    except EOFError:
-        return default_yes
+    suffix = "[Y/n]" if default_yes else "[y/N]"
+    prompt(f"{question} {suffix} ")
+    answer = _read_line().strip().lower()
     if not answer:
         return default_yes
     return answer in ("y", "yes")

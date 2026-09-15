@@ -5,17 +5,21 @@ set -euo pipefail
 
 REPO_URL="https://github.com/Pakrohk-DotFiles/ziro-shell.git"
 
-# --- Locate Python 3 ---
+# --- Locate Python 3.11+ (engine needs tomllib; dataclasses use PEP 604 syntax) ---
 PYTHON=""
 for candidate in python3 python; do
     if command -v "$candidate" >/dev/null 2>&1 && \
-       "$candidate" -c 'import sys; sys.exit(0 if sys.version_info[0] >= 3 else 1)' 2>/dev/null; then
+       "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
         PYTHON="$candidate"
         break
     fi
 done
 if [ -z "$PYTHON" ]; then
-    echo "error: Python 3 is required. Install python3 and retry." >&2
+    echo "error: Python 3.11 or later is required (engine uses tomllib)." >&2
+    echo "  Ubuntu/Debian: sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install -y python3.11 python3.11-venv" >&2
+    echo "  Fedora: sudo dnf install python3.11" >&2
+    echo "  Arch: sudo pacman -S python" >&2
+    echo "  macOS: brew install python@3.12" >&2
     exit 1
 fi
 
