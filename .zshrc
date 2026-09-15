@@ -242,23 +242,34 @@ load_keys() {
     fi
 }
 
-# Restore existing agent environment if available
+# Cheap restore at startup: if a live agent env file exists, source it so
+# `zsh -i -c` style tooling inherits the socket. Starting a new agent and
+# `ssh-add` are deferred to the first interactive command (see preexec hook),
+# which moves ~9ms off the shell-init critical path.
 if [[ -f "$SSH_ENV" ]]; then
     . "$SSH_ENV" >/dev/null
-    if ! kill -0 "$SSH_AGENT_PID" >/dev/null 2>&1; then
+    if [[ -z "$SSH_AUTH_SOCK" ]] || ! kill -0 "$SSH_AGENT_PID" >/dev/null 2>&1; then
+        unset SSH_AUTH_SOCK SSH_AGENT_PID
+    fi
+fi
+
+# Bring up the agent on first interactive command instead of at startup.
+ensure_ssh_agent() {
+    (( ${+_ZIRO_SSH_READY} )) && return
+    if [[ -z "$SSH_AUTH_SOCK" ]] || ! kill -0 "$SSH_AGENT_PID" >/dev/null 2>&1; then
         start_agent
     fi
-else
-    start_agent
-fi
+    load_keys
+    export SSH_AUTH_SOCK SSH_AGENT_PID
+    typeset -g _ZIRO_SSH_READY=1
+}
 
-# Ensure environment is valid
-if [[ -z "$SSH_AUTH_SOCK" ]] || ! kill -0 "$SSH_AGENT_PID" >/dev/null 2>&1; then
-    start_agent
-fi
-
-# Load keys only if necessary
-load_keys
+autoload -Uz add-zsh-hook
+_ziro_ssh_preexec() {
+    ensure_ssh_agent
+    add-zsh-hook -d preexec _ziro_ssh_preexec
+}
+add-zsh-hook preexec _ziro_ssh_preexec
 
 fi # End of SSH Agent check
 
