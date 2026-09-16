@@ -142,6 +142,10 @@ def _persist_language_flags(config_dir: Path, values: dict[str, str]) -> None:
         "znap fpath _rustup 'rustup completions zsh'",
         "znap fpath _cargo 'rustup completions zsh cargo'",
     )
+    _MANAGED_COMMENTS = {
+        "# Language tooling (set by ziro install; edit freely)",
+        "# Shell features (set by ziro install; edit freely)",
+    }
     lines = []
     if local.is_file():
         for line in local.read_text(encoding="utf-8", errors="replace").splitlines():
@@ -149,6 +153,8 @@ def _persist_language_flags(config_dir: Path, values: dict[str, str]) -> None:
             if key in _ALL_ENABLE_KEYS:
                 continue
             if line.strip() in _LEGACY_STRIP:
+                continue
+            if line.strip() in _MANAGED_COMMENTS:
                 continue
             lines.append(line)
     lines += [
@@ -206,7 +212,10 @@ def _preflight(opts: Options) -> bool:
     up, then let the user replace it (backup + continue) or abort.
 
     None asks interactively; --force means always replace; --no-overwrite
-    means abort. Without a terminal the safe default is to abort."""
+    means abort. Without a terminal the default is backup + replace —
+    nothing is lost because every conflict is copied to a timestamped
+    backup first; pass --no-overwrite for a strict fail-instead-touching
+    policy."""
     conflicts = _detect_conflicts()
     if not conflicts:
         ui.present("no existing zsh config to replace")
