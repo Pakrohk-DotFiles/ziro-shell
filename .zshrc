@@ -31,8 +31,8 @@ fi
 
 ### --- Bootstrap Znap ---
 # This must happen before sourcing .zshrc.local if it uses znap
-[[ -r $ZSH_CONFIG_DIR/znap/znap.zsh ]] || git clone --depth 1 https://github.com/marlonrichert/zsh-snap.git $ZSH_CONFIG_DIR/znap
-source $ZSH_CONFIG_DIR/znap/znap.zsh
+[[ -r $ZSH_CONFIG_DIR/vendor/znap/znap.zsh ]] || git clone --depth 1 https://github.com/marlonrichert/zsh-snap.git $ZSH_CONFIG_DIR/vendor/znap
+source $ZSH_CONFIG_DIR/vendor/znap/znap.zsh
 
 # Disable warncreateglobal (enabled by znap opts) to silence plugin global-var warnings
 setopt NO_WARN_CREATE_GLOBAL
@@ -134,9 +134,19 @@ znap prompt
 # Core Plugins (always loaded)
 ########################################
 znap source zdharma-continuum/fast-syntax-highlighting
-znap source zsh-users/zsh-autosuggestions
 znap source ohmyzsh/ohmyzsh plugins/git
 znap source ohmyzsh/ohmyzsh plugins/colored-man-pages
+# ziro ghost: self-maintained history autosuggestion (replaces zsh-autosuggestions).
+# Spec 009 §FR-001: ghost text via POSTDISPLAY on ZLE key input.
+# Defaults registry (`~/.config/ziro/defaults.toml` [auto_suggest], spec 006 §R2)
+# selects ziro-ghost over upstream zsh-autosuggestions here. Must load after
+# compinit (registers ZLE widgets). `znap source` only clones git repos, so the
+# local plugin is sourced directly.
+if [[ "$ZSH_AUTOSUGGEST_DISABLE" == "yes" ]]; then
+    source "$ZSH_CONFIG_DIR/ghost/ghost.zsh"
+else
+    znap source zsh-users/zsh-autosuggestions
+fi
 
 ########################################
 # Feature-gated Plugins
