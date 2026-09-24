@@ -15,7 +15,7 @@ def main(argv: list[str] | None = None) -> int:
     args = list(argv or sys.argv[1:])
     if not args:
         print("usage: python3 -m core <subcommand> [args...]", file=sys.stderr)
-        print("subcommands: theme, prompt", file=sys.stderr)
+        print("subcommands: theme, prompt, install, plugin", file=sys.stderr)
         return 2
 
     sub = args[0]
@@ -27,6 +27,12 @@ def main(argv: list[str] | None = None) -> int:
     if sub == "prompt":
         from core import prompt_cli
         return prompt_cli.main(rest)
+    if sub == "install":
+        from core import install_cli
+        return install_cli.main(rest)
+    if sub == "plugin":
+        from core import plugin_cli
+        return plugin_cli.main(rest)
 
     print(f"unknown subcommand: {sub}", file=sys.stderr)
     return 2
