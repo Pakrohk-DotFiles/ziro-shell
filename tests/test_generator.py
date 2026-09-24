@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path.home() / ".ziro"))
 
-from core.generator import generate, HEADER_LINE, default_output_path
+from core.generator import generate, HEADER_LINE, default_output_path, EmitOptions
 from core.models import Strategy
 from core.resolver import ResolvedConfig
 
@@ -17,11 +17,12 @@ class TestGenerate(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "plugins.gen.zsh"
             configs = [
-                ResolvedConfig("p1", Strategy.EAGER, pick="p1.plugin.zsh"),
+                ResolvedConfig("p1", Strategy.EAGER),
                 ResolvedConfig("p2", Strategy.AFTER_PROMPT, defer_slot="b"),
                 ResolvedConfig("p3", Strategy.LAZY, defer_slot="2"),
             ]
-            generate(configs, out, generated_at="2026-01-01T00:00:00Z")
+            opts = EmitOptions(generated_at="2026-01-01T00:00:00Z")
+            generate(configs, out, options=opts)
             content = out.read_text()
             self.assertTrue(content.startswith(HEADER_LINE))
             self.assertIn("znap source p1", content)
@@ -34,8 +35,9 @@ class TestGenerate(unittest.TestCase):
             out2 = Path(tmp) / "b.zsh"
             configs = [ResolvedConfig("p1", Strategy.EAGER)]
             ts = "2026-01-01T00:00:00Z"
-            generate(configs, out1, generated_at=ts)
-            generate(configs, out2, generated_at=ts)
+            opts = EmitOptions(generated_at=ts)
+            generate(configs, out1, options=opts)
+            generate(configs, out2, options=opts)
             self.assertEqual(out1.read_text(), out2.read_text())
 
     def test_default_output_path(self):
