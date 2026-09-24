@@ -32,7 +32,7 @@ class TestPluginCli(unittest.TestCase):
     def test_add_skeleton(self):
         buf = io.StringIO()
         with redirect_stdout(buf):
-            rc = plugin_cli.main(["add", "test-plugin"])
+            rc = plugin_cli.main(["add", "test-plugin", "--dry-run"])
         self.assertEqual(rc, 0)
         self.assertIn("test-plugin", buf.getvalue())
 
