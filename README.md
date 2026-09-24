@@ -17,7 +17,7 @@ budget. The hot path — sourced on every shell start — targets **< 5ms**
 ~/.ziro/integration.zsh      ← Layer 0: bootstrap
 ~/.ziro/lib/                 ← shared helpers
 ~/.ziro/commands/            ← Zsh CLI command modules
-~/.ziro/ziro/                ← Python core (cold-path only)
+~/.ziro/core/                ← Python core (cold-path only)
 ~/.ziro/vendor/              ← vendored runtimes (znap, ziro-defer)
 ~/.ziro/prompts/             ← prompt themes
 ~/.ziro/themes/              ← color schemes
@@ -28,7 +28,7 @@ budget. The hot path — sourced on every shell start — targets **< 5ms**
 | Layer | Responsibility | Location |
 |-------|---------------|----------|
 | 0 | Shell bootstrap | `integration.zsh` |
-| 1 | Config parsing & plugin analysis | Python core (`ziro/`) |
+| 1 | Config parsing & plugin analysis | Python core (`core/`) |
 | 2 | Plugin resolution & generation | Python core → `plugins.gen.zsh` |
 | 3 | Plugin runtime | `vendor/znap/` |
 
@@ -71,7 +71,7 @@ makes re-sourcing safe.
 
 - **Hot path** (`integration.zsh`): sourced every shell start. No Python, no
   subprocess, no network. Stays under the 5ms budget.
-- **Cold path** (`ziro/` Python core): heavy analysis, tag resolution, file
+- **Cold path** (`core/` Python core): heavy analysis, tag resolution, file
   generation. Invoked via subprocess only when needed.
 - **CLI** (`commands/`, `lib/`, `ziro.zsh`): always available, sourceable
   standalone, minimal overhead.
