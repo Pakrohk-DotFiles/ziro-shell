@@ -186,3 +186,51 @@ def analyze_plugin(plugin_dir: Path, plugin_name: str = "") -> AnalysisResult:
 
 
 __all__ = ["analyze_plugin", "ANALYZER_VERSION"]
+
+
+# ─── Phase 2b: Cache + Async additions ───
+
+def analyze_with_cache(plugin_dir: Path, plugin_name: str = "") -> AnalysisResult:
+    """Analyze plugin, using cache if source hash matches."""
+    from core.cache import compute_source_hash, load_cached, store_cached
+
+    plugin_dir = Path(plugin_dir)
+    plugin_name = plugin_name or plugin_dir.name
+
+    if not plugin_dir.is_dir():
+        return AnalysisResult.empty(plugin_name)
+
+    source_hash = compute_source_hash(plugin_dir)
+
+    cached = load_cached(plugin_name, source_hash)
+    if cached is not None:
+        return cached
+
+    result = analyze_plugin(plugin_dir, plugin_name)
+    store_cached(plugin_name, source_hash, result)
+    return result
+
+
+async def analyze_many_async(
+    plugins: list[tuple[Path, str]],
+    concurrency: int = 8,
+) -> list[AnalysisResult]:
+    """Analyze multiple plugins in parallel using asyncio."""
+    import asyncio
+
+    sem = asyncio.Semaphore(concurrency)
+
+    async def _one(pd: Path, name: str) -> AnalysisResult:
+        async with sem:
+            return await asyncio.to_thread(analyze_with_cache, pd, name)
+
+    return await asyncio.gather(*(_one(pd, name) for pd, name in plugins))
+
+
+def analyze_many(
+    plugins: list[tuple[Path, str]],
+    concurrency: int = 8,
+) -> list[AnalysisResult]:
+    """Synchronous entry point for parallel analysis."""
+    import asyncio
+    return asyncio.run(analyze_many_async(plugins, concurrency))
