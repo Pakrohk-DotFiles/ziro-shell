@@ -1,0 +1,49 @@
+name: test
+
+on:
+  push:
+    branches: [main, perf/startup]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install zsh
+        run: sudo apt-get update && sudo apt-get install -y zsh
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Compile Python
+        run: |
+          python -m py_compile core/*.py
+          python -m py_compile tests/*.py
+
+      - name: Validate zsh syntax
+        run: |
+          for f in commands/*.zsh lib/*.zsh prompts/*.zsh integration.zsh ziro.zsh; do
+            [ -f "$f" ] && zsh -n "$f" || echo "skip: $f"
+          done
+
+      - name: Run tests
+        env:
+          # Tests import from the repo root (`core/`, `tests/`), not from an
+          # installed $HOME/.ziro. CI runners have a bare checkout, so put the
+          # workspace first on sys.path.
+          PYTHONPATH: ${{ github.workspace }}
+        run: python -m unittest discover -s tests -v
+
+      - name: Smoke CLI
+        run: |
+          python -m core 2>&1 | head -2
+          python -m core bench --iters 3 2>&1 | head -5

@@ -1,8 +1,25 @@
-# Znap compiled files
-*.zwc
+# ═══════════════════════════════════════════════════════════
+# ziro-shell — .gitignore
+# پروژه گیت‌هاب تمیز می‌ماند. Specها و تصمیمات محلی.
+# ═══════════════════════════════════════════════════════════
 
-# Znap-managed plugin clones (not part of this repo)
+# ─── SpecKit & internal decisions (local-only) ───
+.specify/
+.specify-backup*/
+*.specify.bak
+
+# ─── OpenCode & AI tooling (local-only) ───
+.opencode/
+.claude/
+.cursor/
+.aider*
+*.aider.chat.history.md
+*.aider.input.history
+
+# ─── Znap & zsh plugin clones (never part of this repo) ───
+*.zwc
 /znap/
+/vendor/znap/
 /ohmyzsh/
 /zsh-users/
 /zdharma-continuum/
@@ -10,13 +27,78 @@
 /mfaerevaag/
 /djui/
 /rupa/
+/ex2.*/
+/ghost/
+/opencode-mem-*.tgz
 
-# Machine-local overrides (never commit; ships .example only)
+# ─── Machine-local overrides (never commit; ships .example only) ───
 /.zshrc.local
+/.last_update_check
+/.last_update_check.zwc
+/.update_available
 
-# Runtime state
-.last_update_check
-.update_available
+# ─── Generated wiki & AI docs (local-only) ───
+AGENTS.md
 
-# Python
+# ─── Ziro-generated artifacts ───
+*.gen.zsh
+plugins.gen.zsh
+.ziro-generated
+.config/ziro/derived/
+
+# ─── User-local state ───
+.cache/
+*.log
+logs/
+backups/
+
+# ─── Python ───
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# ─── Node (if ever used) ───
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# ─── OS-specific ───
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ─── Editor-specific ───
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── Secrets (never commit) ───
+.env
+.env.local
+*.key
+*.pem
+auth.json
+credentials.json
+
+# ─── Backups (R8 hygiene) ───
+*.bak
+
+# ─── Tooling config (local machine-only) ───
+opencode-rag.json
+vendor/
