@@ -36,6 +36,11 @@ jobs:
           done
 
       - name: Run tests
+        env:
+          # Tests import from the repo root (`core/`, `tests/`), not from an
+          # installed $HOME/.ziro. CI runners have a bare checkout, so put the
+          # workspace first on sys.path.
+          PYTHONPATH: ${{ github.workspace }}
         run: python -m unittest discover -s tests -v
 
       - name: Smoke CLI

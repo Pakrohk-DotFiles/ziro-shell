@@ -1,6 +1,4 @@
 """Tests for core.resolver."""
-
-import shutil
 import sys
 import tempfile
 import unittest
@@ -13,6 +11,14 @@ from core.models import (
 )
 from core.resolver import resolve, ConflictError
 
+# Minimal tag set covering the builtins used below. Avoids depending on
+# $HOME/.config/ziro/tags/builtin.toml (created by install, gitignored, and
+# therefore absent on ephemeral CI runners).
+_MIN_BUILTIN_TOML = (
+    '[[tags]]\nname = "@eager"\nstrategy = "eager"\npriority = 10\n'
+    '[[tags]]\nname = "@lazy"\nstrategy = "defer"\npriority = 5\n'
+)
+
 
 def _analysis(plugin: str, strategy: Strategy = Strategy.LAZY) -> AnalysisResult:
     return AnalysisResult(
@@ -24,22 +30,19 @@ def _analysis(plugin: str, strategy: Strategy = Strategy.LAZY) -> AnalysisResult
 
 
 def _fixture_config(tmp: str) -> Path:
-    """Create temp config dir with builtin.toml copied in."""
+    """Self-contained temp config dir with a minimal builtin.toml."""
     cfg = Path(tmp)
-    (cfg / "tags" / "plugins").mkdir(parents=True)
-    shutil.copy(
-        Path.home() / ".config" / "ziro" / "tags" / "builtin.toml",
-        cfg / "tags" / "builtin.toml",
-    )
+    (cfg / "tags" / "plugins").mkdir(parents=True, exist_ok=True)
+    (cfg / "tags" / "builtin.toml").write_text(_MIN_BUILTIN_TOML)
     return cfg
 
 
 class TestResolve(unittest.TestCase):
     def test_no_tags_keeps_analysis(self):
-        config = Path.home() / ".config" / "ziro"
-        r = resolve(_analysis("no-tags-plugin"), config)
-        self.assertEqual(r.strategy, Strategy.LAZY)
-        self.assertEqual(r.applied_tags, ())
+        with tempfile.TemporaryDirectory() as tmp:
+            r = resolve(_analysis("no-tags-plugin"), _fixture_config(tmp))
+            self.assertEqual(r.strategy, Strategy.LAZY)
+            self.assertEqual(r.applied_tags, ())
 
     def test_eager_tag_overrides(self):
         with tempfile.TemporaryDirectory() as tmp:
