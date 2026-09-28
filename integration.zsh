@@ -25,7 +25,9 @@ fi
 # 1. Ziro-defer (canonical fork — when available)
 # 2. Zsh-defer upstream (current interim)
 # 3. Eager stub (safe no-op)
-if [[ -r "$ZIRO_HOME/vendor/ziro-defer/ziro-defer.plugin.zsh" ]]; then
+if [[ -r "$ZIRO_HOME/ziro-defer/ziro-defer.plugin.zsh" ]]; then
+  source "$ZIRO_HOME/ziro-defer/ziro-defer.plugin.zsh"
+elif [[ -r "$ZIRO_HOME/vendor/ziro-defer/ziro-defer.plugin.zsh" ]]; then
   source "$ZIRO_HOME/vendor/ziro-defer/ziro-defer.plugin.zsh"
 elif [[ -r "$ZIRO_HOME/vendor/ziro-defer/zsh-defer.plugin.zsh" ]]; then
   source "$ZIRO_HOME/vendor/ziro-defer/zsh-defer.plugin.zsh"
