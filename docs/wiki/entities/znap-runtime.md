@@ -2,7 +2,7 @@
 title: zsnap / znap runtime (Layer 3)
 tags: [layer3, znap, ziro-defer, runtime, backend]
 sourceRefs: ["/home/ali/.ziro/.specify/specs/005-znap-optimization/spec.md", "/home/ali/.ziro/.specify/decisions/ADR-002-znap-permanent-zirodefer.md", "/home/ali/.ziro/integration.zsh"]
-lastReviewed: 2026-09-24
+lastReviewed: 2026-09-29
 ---
 
 Layer 3 is the runtime backend: plugin fetching, caching, deferred loading.
@@ -16,6 +16,8 @@ migrations are a non-goal.
   [[concepts/znap-plugin-loading]].
 - **ziro-defer** — canonical deferral engine, a fork of upstream zsh-defer.
   Upstream remains available; ziro-defer is a superset.
+  Loaded from `$ZIRO_HOME/ziro-defer/ziro-defer.plugin.zsh` (canonical fork
+  dir, v0.1.0 — see [[entities/ziro-defer]]).
 
 ## Contract
 

@@ -13,6 +13,7 @@ immutable (code, docs); this layer synthesizes it.
 - [[entities/plugin-analyzer]] — Layer 1, Python static analysis, stdlib only
 - [[entities/tag-system]] — Layer 2, tag resolution + `plugins.gen.zsh` generation
 - [[entities/znap-runtime]] — Layer 3, znap + ziro-defer runtime, frozen backend
+- [[entities/ziro-defer]] — ziro-defer fork (v0.1.0), first-class directory, API + roadmap
 - [[entities/cli]] — `ziro.zsh` dispatcher + `commands/*.zsh` modules
 - [[entities/ghost-plugin]] — ziro-ghost: sovereign ZLE autosuggestion plugin
 
@@ -22,7 +23,7 @@ immutable (code, docs); this layer synthesizes it.
 - [[concepts/plugin-sovereignty]] — Constitution XIV: every plugin standalone
 - [[concepts/xdg-path-layout]] — `lib/xdg.zsh` as the path source of truth
 - [[concepts/znap-plugin-loading]] — `znap source` only clones git repos; local files `source` directly
-- [[concepts/defer-naming-split]] — generator emits `ziro-defer`; vendored runtime only defines `zsh-defer` — broken deferred loads
+- [[concepts/defer-naming-split]] — generator emits `ziro-defer`; resolved via v0.1.0 fork in `ziro-defer/` dir ([[entities/ziro-defer]]); residual Spec 006 §B.3 divergence logged as Bug #2
 - [[concepts/test-hermeticity]] — tests must not read the installed `~/.config/ziro`; CI has no HOME files
 
 ## Sources — external and decision documents

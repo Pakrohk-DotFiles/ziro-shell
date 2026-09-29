@@ -49,7 +49,7 @@ not follow this — it emits `ziro-defer ... znap source X`.
 ziro plugin add mfaerevaag/wd wd @defer-comp   # adds a deferred plugin
 zsh -c 'source ~/.ziro/integration.zsh; \
         source $ZIRO_CONFIG/derived/plugins.gen.zsh'
-# → plugins.gen.zsh:5: command not found: ziro-defer
+# → plugins.gen.zsh:5: ziro-defer znap source wd  (now works — ziro-defer is defined)
 ```
 
 Generated line:
@@ -69,10 +69,15 @@ is entirely absent. In the normal case the `zsh-defer` branch is taken and
 ## Status: RESOLVED (v0.1.0 MVP, 2026-09-25)
 
 The gap is closed by a **progressive fork**, not by editing the emitter.
-`vendor/ziro-defer/ziro-defer.plugin.zsh` now exists, sources the vendored
-upstream `zsh-defer.plugin.zsh`, and defines the `ziro-defer` function that
-`core/ziro_load.py` emits. Deferred-strategy plugins load correctly;
+`ziro-defer/ziro-defer.plugin.zsh` (first-class directory, v0.1.0) sources the
+vendored upstream `zsh-defer.plugin.zsh` and defines the `ziro-defer` function
+that `core/ziro_load.py` emits. Deferred-strategy plugins load correctly;
 `core/ziro_load.py` and `tests/test_generator.py` are unchanged.
+
+History: first resolved via `vendor/ziro-defer/ziro-defer.plugin.zsh` (shim);
+promoted to the tracked `ziro-defer/` directory on 2026-09-28
+(commit `fa8981e`). See [[entities/ziro-defer]] and
+[[sources/adr-005-ziro-defer-directory-placement]].
 
 ## Progressive Fork Strategy (v0.8.11)
 

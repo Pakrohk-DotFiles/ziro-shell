@@ -2,7 +2,7 @@
 title: Hot path vs cold path
 tags: [performance, hot-path, cold-path, budget, concept]
 sourceRefs: ["/home/ali/.ziro/.specify/roadmap.json", "/home/ali/.ziro/.specify/specs/000-architecture/spec.md", "/home/ali/.ziro/integration.zsh"]
-lastReviewed: 2026-09-24
+lastReviewed: 2026-09-29
 ---
 
 Roadmap principle **P1**: ziro's central architectural invariant. Two budgets.

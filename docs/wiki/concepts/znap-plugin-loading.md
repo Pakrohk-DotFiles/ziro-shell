@@ -2,7 +2,7 @@
 title: znap plugin loading — local vs git
 tags: [znap, loading, gotcha, concept]
 sourceRefs: ["/home/ali/.ziro/.zshrc", "/home/ali/.ziro/integration.zsh"]
-lastReviewed: 2026-09-24
+lastReviewed: 2026-09-29
 ---
 
 `znap source <owner>/<repo>` **only clones git repos**. Local `.zsh` files

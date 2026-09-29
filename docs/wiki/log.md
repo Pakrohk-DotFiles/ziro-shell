@@ -131,3 +131,16 @@ Updated `entities/ziro.md` for v1.0.0 realities:
   35 components (32 PASS, 3 PARTIAL), 129 tests pass, 3.22 ms startup,
   doctor 8/8, verdict ready for v1.0.0.
 - Bumped lastReviewed 2026-09-24 → 2026-09-29.
+## [2026-09-29] update | stale-pages-from-fa8981e + create ziro-defer entity (docs/wiki)
+Fixed four stale pages whose `lastReviewed` predated `fa8981e` (ziro-defer v0.1.0, 2026-09-28):
+- `entities/shell-bootstrap.md` — bumped lastReviewed, added fallback chain detail from `integration.zsh`
+- `entities/znap-runtime.md` — bumped lastReviewed, clarified `ziro-defer` source path
+- `concepts/hot-path-cold-path.md` — bumped lastReviewed
+- `concepts/znap-plugin-loading.md` — bumped lastReviewed
+Updated `concepts/defer-naming-split.md`: rewrote Status section to reflect the first-class
+fork (commit `fa8981e`) rather than the old vendor-shim narrative; corrected the
+"command not found" example to reflect current working behavior.
+Created new entity page: `entities/ziro-defer.md` (fork directory, API v0.1.0,
+roadmap, link to ADR-004/005).
+Updated `index.md`: added `ziro-defer` entity link and refreshed `defer-naming-split`
+description.

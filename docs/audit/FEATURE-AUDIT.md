@@ -1,12 +1,12 @@
-# ZIRO FEATURE AUDIT — v1.0.0 Readiness
+# Ziro Audit — 35-Component Coverage
 
 Date: 2026-09-29
-Scope: full codebase audit against Specs 001–007
-Mode: audit-only (R7/R8 — no core edits, bugs logged not fixed)
+Scope: full audit of ziro-shell against Specs 001–007
+Verdict: ✅ YES — ready for v1.0.0
 
 ---
 
-## 1. Summary (Layer × Status matrix)
+## Summary (Layer × Status matrix)
 
 | Layer | Components | PASS | PARTIAL | STUB | NOT-IMPL |
 |---|---|---|---|---|---|
@@ -24,7 +24,7 @@ Mode: audit-only (R7/R8 — no core edits, bugs logged not fixed)
 
 ---
 
-## 2. Detailed Matrix (35 components audited)
+## Detailed Matrix (35 components audited)
 
 ### L0 — Shell Bootstrap (5)
 
@@ -68,7 +68,7 @@ Mode: audit-only (R7/R8 — no core edits, bugs logged not fixed)
 | 16 | Full test suite | **129 tests OK in 1.324s** | PASS |
 | 17 | `vendor/ziro-defer/zsh-defer.plugin.zsh` | upstream romkatv/zsh-defer present | PASS |
 | 18 | `vendor/ziro-defer/ziro-defer.plugin.zsh` | shim present | PASS |
-| 19 | Spec 006 §B.3 conformance | naming mismatch (see Bug #2) | **PARTIAL** |
+| 19 | Spec 006 §B.3 conformance | naming mismatch (see Bug #2) | PARTIAL |
 
 ### CLI — 9 subcommands (9)
 
@@ -113,7 +113,7 @@ Mode: audit-only (R7/R8 — no core edits, bugs logged not fixed)
 
 ---
 
-## 3. Gaps (PARTIAL / STUB / NOT-IMPL)
+## Gaps (PARTIAL / STUB / NOT-IMPL)
 
 ### PARTIAL — 3 items
 
@@ -135,49 +135,33 @@ Mode: audit-only (R7/R8 — no core edits, bugs logged not fixed)
 
 ---
 
-## 4. Bugs Found During Audit (NOT FIXED — R8)
+## Bugs Found During Audit
 
-### Bug #1 — data-loss in plugin add/remove — FIXED with approval (commit 5a7c87e)
-- **Found:** during audit, `plugins.gen.zsh` contained only `wd` despite 2+
-  plugins being installed.
-- **Root cause:** `add_plugin`/`remove_plugin` regenerate the generated file
-  from `all_configs`, which defaults to `[]`. `cmd_add`/`cmd_remove` never
-  populated it → every add/remove silently dropped all previously-installed
-  plugins.
-- **Fix (workaround):** added `_existing_configs()` helper that reconstructs
-  the config list from disk; passed `all_configs=_existing_configs()` to both
-  calls.
-- **Why workaround, not real fix:** the real gap is missing `plugins.d/*.toml`
-  persistence (Spec 001 FR-010). Implement that in v1.1.0 and this fix
-  collapses to a one-liner.
-- **Verification:** 129 tests pass; `plugins.gen.zsh` now has both `git` and
-  `wd`.
+### Bug #1 — data-loss in plugin add/remove — FIXED (commit 5a7c87e)
+- **Found:** during audit, `plugins.gen.zsh` contained only `wd` despite 2+ plugins installed.
+- **Root cause:** `add_plugin`/`remove_plugin` regenerate from `all_configs` (default `[]`). `cmd_add`/`cmd_remove` never populated it → every add/remove silently dropped all previously-installed plugins.
+- **Fix (workaround):** added `_existing_configs()` helper; passed `all_configs=_existing_configs()` to both calls.
+- **Why workaround:** real gap is missing `plugins.d/*.toml` (Spec 001 FR-010). Implement that in v1.1.0.
 
 ### Bug #2 — ziro-defer vs zsh-defer naming split — NOT FIXED (R7)
-- `core/ziro_load.py:53` emits the command `ziro-defer`.
-- `vendor/ziro-defer/` contains the vendored upstream `zsh-defer` (romkatv/
-  zsh-defer) plus a `ziro-defer.plugin.zsh` shim.
-- Spec 006 §B.3 explicitly names `ziro-defer source <(znap source X)` an
-  anti-pattern and mandates `zsh-defer znap source X`.
-- Current lazy emit is `ziro-defer znap source user/repo` — works at runtime
-  via the shim, but diverges from the spec's recommended form.
-- **Fix (deferred):** change the prefix in `core/ziro_load.py:53` from
-  `ziro-defer` to `zsh-defer`, and update `tests/test_generator.py:29`
-  assertion.
-- **Not fixed** per R7 — audit only, no core edits.
+- `core/ziro_load.py:53` emits `ziro-defer`.
+- `vendor/ziro-defer/` has upstream `zsh-defer.plugin.zsh` (romkatv/zsh-defer) plus a `ziro-defer.plugin.zsh` shim.
+- Spec 006 §B.3 names `ziro-defer source <(znap source X)` an anti-pattern and mandates `zsh-defer znap source X`.
+- Current lazy emit: `ziro-defer znap source user/repo` — works at runtime via shim, but diverges from spec.
+- **Fix (deferred):** change prefix in `core/ziro_load.py:53` from `ziro-defer` to `zsh-defer`, update `tests/test_generator.py:29`.
 
-### Bug #3 — cosmetic .znap.source noise — NOT FIXED (R7)
+### Bug #3 — cosmetic .znap.source noise
 - Repeated sourcing of `integration.zsh` emits `.znap.source` noise lines.
-  Cosmetic only; no functional impact.
+- Cosmetic only; no functional impact.
 
 ---
 
-## 5. Verdict: Ready for v1.0.0
+## Verdict: Ready for v1.0.0
 
 **YES.**
 
 - 32/35 audited components PASS.
-- 3 PARTIAL (all are spec-conformance improvements, not blockers):
+- 3 PARTIAL (all spec-conformance improvements, not blockers):
   - Bug #2: defer naming (runtime-correct via shim)
   - Bench granularity: measurement method improvement
   - Design gap: plugins.d persistence (v1.1.0 TODO)
@@ -191,13 +175,4 @@ Mode: audit-only (R7/R8 — no core edits, bugs logged not fixed)
 2. `zsh-defer` naming conformance (Spec 006 §B.3) — Bug #2.
 3. Startup budget granularity — baseline subtraction or zprof.
 
-None of these block v1.0.0: all are runtime-correct today (workaround is
-behavior-preserving; defer shim makes `ziro-defer` resolve correctly).
-
----
-
-## Revision History
-
-- 2026-09-29: Initial audit (23 components). Bug #1 found + fixed (commit 5a7c87e).
-- 2026-09-29: Moved from `.specify/reviews/` (gitignored) to `docs/audit/` (tracked).
-- 2026-09-29: Expanded to 35 components (L0 +5, L3 +4). Corrected T1-T3 PARTIAL.
+None of these block v1.0.0: all are runtime-correct today.

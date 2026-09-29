@@ -2,7 +2,7 @@
 title: Shell bootstrap (Layer 0)
 tags: [layer0, bootstrap, startup, integration]
 sourceRefs: ["/home/ali/.ziro/integration.zsh", "/home/ali/.ziro/.specify/specs/004-shell-bootstrap/spec.md"]
-lastReviewed: 2026-09-24
+lastReviewed: 2026-09-29
 ---
 
 `integration.zsh` is the hot-path entry point sourced from `.zshrc`. Owns the
@@ -23,7 +23,10 @@ lastReviewed: 2026-09-24
 
 - **Forbidden**: any Python, any subprocess, file parsing, network I/O
 - Installs ziro-defer with fallback to upstream zsh-defer
-  ([[sources/adr-002-znap-permanent]])
+  ([[sources/adr-002-znap-permanent]]). Fallback chain in `integration.zsh`:
+  `ziro-defer/` (canonical fork, v0.1.0) → `vendor/ziro-defer/ziro-defer`
+  (shim) → `vendor/ziro-defer/zsh-defer` (upstream) → `zsh-defer` on `PATH`
+  → eager stub (`ziro-defer() { "$@"; }`).
 - Local plugins are `source`d directly, never `znap source`
   ([[concepts/znap-plugin-loading]])
 - ZLE plugins must source after `compinit` — they register widgets
