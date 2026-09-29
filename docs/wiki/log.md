@@ -103,3 +103,31 @@ Renamed `sources/adr-005-fork-directory-convention.md` →
 `sources/adr-005-ziro-defer-directory-placement.md` to match the actual ADR
 filename (`.specify/decisions/ADR-005-ziro-defer-directory-placement.md`) and
 updated all 6 internal `[[...]]` links referencing the old slug.
+
+## [2026-09-29] update | defer-naming-split-page (wiki)
+Updated stale intro: generator emits `ziro-defer` which DOES exist at runtime via vendor shim. Spec 006 §B.3 divergence logged as Bug #2 in docs/audit/FEATURE-AUDIT.md.
+
+## [2026-09-29] lint | stale-finder-and-get-plugins
+Wiki lint (docs/wiki/): two pages carry stale claims.
+- `entities/finder-plugin.md` claims finder is "next after deferral" but
+  `docs/audit/FEATURE-AUDIT.md` now shows `ziro-defer` (Stage 4) blocking
+  Stage 5 progress.
+- `entities/get-plugins.md` states fork deferred to v0.8.11, but ADR-005 has
+  fired the reversal trigger: v0.1.0 fork now lives in `vendor/ziro-defer/`.
+Both flagged for update next session or when touched.
+## [2026-09-29] lint | stale-page-recheck (docs/wiki)
+Re-checked the two pages flagged in the prior lint entry (`entities/finder-plugin.md`,
+`entities/get-plugins.md`) — **neither exists** in `docs/wiki/entities/`; they were
+never created. Dangling lint references, no action needed. Current entities inventory
+confirmed: cli, ghost-plugin, plugin-analyzer, shell-bootstrap, tag-system, ziro, znap-runtime.
+
+## [2026-09-29] update | ziro-overview-page (entities/ziro.md)
+Updated `entities/ziro.md` for v1.0.0 realities:
+- `ziro/` DDD hexagonal package is DEPRECATED (see `ziro/DEPRECATED.md`); the
+  live codebase is flat `core/` (analyzer.py, resolver.py, generator.py,
+  ziro_load.py, CLI modules). The "Phase 0, Step 1 layout" section describing
+  `ziro/{analyzer,resolver,cli,...}` was stale — replaced with the flat layout.
+- Added "Audit (2026-09-29)" section citing `docs/audit/FEATURE-AUDIT.md`:
+  35 components (32 PASS, 3 PARTIAL), 129 tests pass, 3.22 ms startup,
+  doctor 8/8, verdict ready for v1.0.0.
+- Bumped lastReviewed 2026-09-24 → 2026-09-29.

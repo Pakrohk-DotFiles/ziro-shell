@@ -6,13 +6,14 @@ sourceRefs:
   - "/home/ali/.ziro/integration.zsh"
   - "/home/ali/.ziro/.specify/specs/006-install-defaults-registry/spec.md"
   - "/home/ali/.ziro/doctor_cli.py"
-lastReviewed: 2026-09-25
+lastReviewed: 2026-09-29
 ---
 
 The deferral engine is **`zsh-defer`**, upstream. The generator emits
-**`ziro-defer`**, a name that does not exist at runtime. Any deferred plugin
-strategy currently produces a line that fails with
-`command not found: ziro-defer`.
+**`ziro-defer`**, a name that only exists at runtime via the
+`ziro-defer.plugin.zsh` shim (see **Status** below). The emitted form still
+diverges from Spec 006 §B.3, which mandates `zsh-defer znap source X` — this
+is logged as **Bug #2** in [`docs/audit/FEATURE-AUDIT.md`](../../../docs/audit/FEATURE-AUDIT.md).
 
 ## The split
 

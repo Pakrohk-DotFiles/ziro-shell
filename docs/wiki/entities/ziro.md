@@ -2,7 +2,7 @@
 title: Ziro framework overview
 tags: [overview, architecture, layers, roadmap]
 sourceRefs: ["/home/ali/.ziro/.specify/specs/000-architecture/spec.md", "/home/ali/.ziro/.specify/roadmap.json", "/home/ali/.ziro/.specify/memory/constitution.md"]
-lastReviewed: 2026-09-24
+lastReviewed: 2026-09-29
 ---
 
 Ziro is a **zsh configuration framework**: fast startup, plugin analysis, and
@@ -50,13 +50,28 @@ does*. See [[sources/adr-003-two-layer-architecture]].
 | 009 | Ghost autosuggest | current |
 | 007 | Ghost autosuggest | **deprecated** — superseded by 009 |
 
-## Phase 0, Step 1 layout
+## v1.0.0 layout (flat `core/`)
 
-`ziro/` contains: `analyzer/`, `resolver/`, `runtime/`, `cli/`, `prompts/`,
-`themes/`, `shared`.
+The `ziro/` DDD hexagonal package (`domain/`, `ports/`, `adapters/`,
+`application/`) is **DEPRECATED** as of v1.0.0 (see `ziro/DEPRECATED.md`).
+The live codebase is flat: `core/` holds all Python modules (`analyzer.py`,
+`resolver.py`, `generator.py`, `ziro_load.py`, CLI modules, …), with
+`commands/`, `lib/`, `tests/`, `vendor/`, and `docs/` alongside.
+
+Deprecated package, not deleted, because it documents the pre-ADR-003 design.
 
 ## Non-goals
 
 - No backend churn: znap is permanent post-ADR-002. The `ziro_load` adapter
   contract means Layer 1/2 never depend on backend identity.
 - No prompt lock-in: Constitution XIII (Prompt Neutrality).
+
+## Audit (2026-09-29)
+
+Full audit in `docs/audit/FEATURE-AUDIT.md`:
+- **35 components**: 32 PASS, 3 PARTIAL (bug #2 defer naming, bench granularity, plugins.d design gap)
+- **129 tests pass**
+- **Start-up**: 3.22 ms total zsh startup (min), within 5 ms budget
+- **Doctor**: 8/8 healthy
+- **Verdict**: ready for v1.0.0
+
