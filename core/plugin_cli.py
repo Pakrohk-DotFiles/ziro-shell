@@ -11,6 +11,8 @@ import sys
 from pathlib import Path
 
 from core.plugin_pipeline import add_plugin, remove_plugin
+from core.analyzer import analyze_with_cache
+from core.resolver import resolve
 
 
 def _ziro_home() -> Path:
@@ -29,6 +31,27 @@ def _list_plugin_dirs(ziro_home: Path) -> list[Path]:
     if not pdir.is_dir():
         return []
     return sorted(p for p in pdir.iterdir() if p.is_dir() and not p.name.startswith("."))
+
+
+def _existing_configs() -> list:
+    """Reconstruct current plugin configs from installed plugin dirs.
+
+    add_plugin/remove_plugin regenerate plugins.gen.zsh from this list plus
+    the changed plugin. Skipping this drops every previously-installed plugin
+    on each add/remove (each regenerates from scratch).
+    """
+    ziro_home = _ziro_home()
+    config_dir = _config_dir()
+    configs = []
+    for pdir in _list_plugin_dirs(ziro_home):
+        name = pdir.name
+        analysis = analyze_with_cache(pdir, name)
+        try:
+            configs.append(resolve(analysis, config_dir))
+        except Exception:
+            # A broken plugin must not block listing/adding others.
+            continue
+    return configs
 
 
 def cmd_list(argv: list[str]) -> int:
@@ -85,6 +108,7 @@ def cmd_add(argv: list[str]) -> int:
             tags=tags,
             ziro_home=_ziro_home(),
             config_dir=_config_dir(),
+            all_configs=_existing_configs(),
             dry_run=dry_run,
         )
     except RuntimeError as e:
@@ -116,6 +140,7 @@ def cmd_remove(argv: list[str]) -> int:
         name,
         ziro_home=_ziro_home(),
         config_dir=_config_dir(),
+        all_configs=_existing_configs(),
         dry_run=dry_run,
     )
     if not ok:
