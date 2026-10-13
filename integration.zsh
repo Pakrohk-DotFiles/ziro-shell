@@ -38,6 +38,96 @@ else
   ziro-defer() { "$@"; }
 fi
 
+# ─── ziro local source: source + .zwc compile for local plugins ───
+# Uses `znap compile` when available; falls back to `zcompile`.
+_ziro_local_source() {
+  emulate -L zsh
+  local path=""
+  local defer=""
+  local target=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --defer) defer="--defer" ;;
+      *) path="${1:A}" ;;
+    esac
+    shift
+  done
+
+  # ۱. Resolve target file
+  if [[ -d "$path" ]]; then
+    local -a patterns=(
+      "$path"/*.plugin.zsh(N)
+      "$path"/*/*.plugin.zsh(N)
+      "$path"/*.zsh(N)
+    )
+    for f in "${patterns[@]}"; do
+      target="$f"
+      break
+    done
+    if [[ -z "$target" ]]; then
+      print -u2 "ziro: no plugin file (.plugin.zsh/.zsh) found in $path"
+      return 1
+    fi
+  elif [[ -f "$path" ]]; then
+    target="$path"
+  else
+    print -u2 "ziro: path not found: $path"
+    return 1
+  fi
+
+  # ۲. Compile with znap if available, else zcompile
+  local zwc="${target}.zwc"
+  if [[ ! -f "$zwc" || "$target" -nt "$zwc" ]]; then
+    if (( $+functions[znap] )); then
+      znap compile "$target" 2>/dev/null || zcompile "$target" 2>/dev/null || true
+    else
+      zcompile "$target" 2>/dev/null || true
+    fi
+  fi
+
+  # ۳. Source (eager or deferred)
+  if [[ "$defer" == "--defer" ]]; then
+    if [[ -o interactive ]]; then
+      ziro-defer source "$target"
+    else
+      # In non-interactive shell (scripts, tests, CI), ZLE idle loop is absent;
+      # invoke ziro-defer for queueing then source immediately so definitions are active.
+      ziro-defer source "$target" 2>/dev/null || true
+      source "$target"
+    fi
+  else
+    source "$target"
+  fi
+}
+
+# ─── ziro-local dispatcher ───
+ziro-local() {
+  emulate -L zsh
+  case "${1:-}" in
+    source) shift; _ziro_local_source "$@" ;;
+    *) print -u2 "ziro: unknown local subcommand: ${1:-<none>}"; return 2 ;;
+  esac
+}
+
+# ─── ziro wrapper for local command ───
+if ! (( $+functions[ziro] )); then
+  ziro() {
+    if [[ "$1" == "local" ]]; then
+      shift
+      ziro-local "$@"
+    elif (( $+functions[_ziro_dispatch] )); then
+      _ziro_dispatch "$@"
+    elif [[ -r "$ZIRO_HOME/ziro.zsh" ]]; then
+      source "$ZIRO_HOME/ziro.zsh"
+      _ziro_dispatch "$@"
+    else
+      print -u2 "ziro: unknown command: $1"
+      return 1
+    fi
+  }
+fi
+
 # Source the generated plugin list if present
 [[ -r "$ZIRO_CONFIG/derived/plugins.gen.zsh" ]] && \
   source "$ZIRO_CONFIG/derived/plugins.gen.zsh"

@@ -39,6 +39,21 @@ class TestEmitDeferred(unittest.TestCase):
         spec = LoadSpec("heavy", "after-prompt", sub_slot="b")
         self.assertEqual(emit(spec), "ziro-defer --slot=b znap source heavy")
 
+    def test_deferred_rejects_numeric_zero_slot(self):
+        # Regression test for Bug #5: slot '0' is invalid per Spec 005 (only a|b|c)
+        spec = LoadSpec("heavy", "after-prompt", sub_slot="0")
+        self.assertNotIn("--slot=0", emit(spec))
+        self.assertNotIn("--slot", emit(spec))
+
+    def test_local_plugin_emits_source(self):
+        # Regression test for Bug #5: local clone in plugins/ must emit ziro local source
+        spec = LoadSpec("$ZIRO_HOME/plugins/git/git.plugin.zsh", "eager", is_local=True)
+        self.assertEqual(emit(spec), "ziro local source $ZIRO_HOME/plugins/git/git.plugin.zsh")
+
+    def test_local_plugin_deferred_emits_source(self):
+        spec = LoadSpec("$ZIRO_HOME/plugins/wd/wd.plugin.zsh", "after-prompt", is_local=True)
+        self.assertEqual(emit(spec), "ziro-defer ziro local source $ZIRO_HOME/plugins/wd/wd.plugin.zsh")
+
     def test_deferred_with_wait(self):
         spec = LoadSpec("delayed", "lazy", wait="2")
         self.assertIn('--wait="2"', emit(spec))

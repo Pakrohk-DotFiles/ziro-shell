@@ -19,7 +19,8 @@ class TestGenerate(unittest.TestCase):
             configs = [
                 ResolvedConfig("p1", Strategy.EAGER),
                 ResolvedConfig("p2", Strategy.AFTER_PROMPT, defer_slot="b"),
-                ResolvedConfig("p3", Strategy.LAZY, defer_slot="2"),
+                ResolvedConfig("p3", Strategy.LAZY, defer_slot="c"),
+                ResolvedConfig("p4", Strategy.AFTER_PROMPT, defer_slot="0"),
             ]
             opts = EmitOptions(generated_at="2026-01-01T00:00:00Z")
             generate(configs, out, options=opts)
@@ -27,7 +28,27 @@ class TestGenerate(unittest.TestCase):
             self.assertTrue(content.startswith(HEADER_LINE))
             self.assertIn("znap source p1", content)
             self.assertIn("ziro-defer --slot=b znap source p2", content)
-            self.assertIn("ziro-defer --slot=2 znap source p3", content)
+            self.assertIn("ziro-defer --slot=c znap source p3", content)
+            # Slot '0' must be omitted
+            self.assertIn("ziro-defer znap source p4", content)
+            self.assertNotIn("--slot=0", content)
+
+    def test_local_clone_source_emission(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            zh = Path(tmp) / ".ziro"
+            pdir = zh / "plugins" / "myplugin"
+            pdir.mkdir(parents=True)
+            (pdir / "myplugin.plugin.zsh").write_text("# myplugin")
+
+            out = Path(tmp) / "plugins.gen.zsh"
+            configs = [
+                ResolvedConfig("myplugin", Strategy.EAGER),
+            ]
+            opts = EmitOptions(generated_at="2026-01-01T00:00:00Z", ziro_home=zh)
+            generate(configs, out, options=opts)
+            content = out.read_text()
+            self.assertIn("ziro local source $ZIRO_HOME/plugins/myplugin/myplugin.plugin.zsh", content)
+            self.assertNotIn("znap source myplugin", content)
 
     def test_deterministic(self):
         with tempfile.TemporaryDirectory() as tmp:

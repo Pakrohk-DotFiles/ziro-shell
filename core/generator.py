@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import os
 from pathlib import Path
 
 from core.ziro_load import LoadSpec, emit, from_resolved
@@ -37,6 +38,44 @@ class EmitOptions:
     """Options for generator."""
     enforce_order: bool = True
     generated_at: str = ""
+    ziro_home: Path | None = None
+
+
+def _resolve_plugin_target(plugin: str, pick: str = "", ziro_home: Path | None = None) -> tuple[str, bool]:
+    """Detect if plugin is a local clone in plugins/.
+
+    Returns (target_string, is_local).
+    """
+    if plugin.startswith(("$ZIRO_HOME/", "~/.ziro/", "plugins/")):
+        return plugin, True
+
+    zh = ziro_home or Path(os.environ.get("ZIRO_HOME", Path.home() / ".ziro"))
+    pdir = zh / "plugins" / plugin
+    if not pdir.is_dir():
+        rel_pdir = Path("plugins") / plugin
+        if rel_pdir.is_dir():
+            pdir = rel_pdir
+        else:
+            return plugin, False
+
+    # It's a local plugin in plugins/<plugin>
+    if pick and (pdir / pick).is_file():
+        return f"$ZIRO_HOME/plugins/{plugin}/{pick}", True
+
+    cand = pdir / f"{plugin}.plugin.zsh"
+    if cand.is_file():
+        return f"$ZIRO_HOME/plugins/{plugin}/{cand.name}", True
+
+    named = list(pdir.glob(f"**/{plugin}.plugin.zsh"))
+    if named:
+        rel = named[0].relative_to(pdir)
+        return f"$ZIRO_HOME/plugins/{plugin}/{rel}", True
+
+    cand_zsh = pdir / f"{plugin}.zsh"
+    if cand_zsh.is_file():
+        return f"$ZIRO_HOME/plugins/{plugin}/{cand_zsh.name}", True
+
+    return f"$ZIRO_HOME/plugins/{plugin}", True
 
 
 def _emit_plugin(
@@ -49,17 +88,20 @@ def _emit_plugin(
     wait: str = "",
     defer_slot: str = "",
     raw: str = "",
+    ziro_home: Path | None = None,
 ) -> str:
     """Emit zsh line for one plugin via ziro_load."""
+    target_plugin, is_local = _resolve_plugin_target(plugin, pick=pick, ziro_home=ziro_home)
     spec = from_resolved(
-        plugin=plugin,
+        plugin=target_plugin,
         strategy=strategy,
         compile_=compile_,
         eval_cache=eval_cache,
-        pick=pick,
+        pick="" if is_local else pick,
         wait=wait,
         defer_slot=defer_slot,
         raw=raw,
+        is_local=is_local,
     )
     return emit(spec)
 
@@ -101,6 +143,7 @@ def generate(
             wait=getattr(cfg, "wait", ""),
             defer_slot=getattr(cfg, "defer_slot", ""),
             raw=getattr(cfg, "raw", ""),
+            ziro_home=opts.ziro_home,
         )
         lines.append(line)
 
@@ -118,8 +161,8 @@ def default_output_path(config_dir: Path) -> Path:
 __all__ = [
     "generate",
     "default_output_path",
+    "EmitOptions",
+    "LOAD_ORDER",
     "HEADER_LINE",
     "SCHEMA_VERSION",
-    "LOAD_ORDER",
-    "EmitOptions",
 ]

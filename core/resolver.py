@@ -41,7 +41,7 @@ def _apply_tag(rec: Recommendation, tag: Tag) -> Recommendation:
             adapter_options=rec.adapter_options,
         )
     if tag.name in ("@lazy", "@after-prompt"):
-        wait = tag.defer_slot or "0"
+        wait = tag.defer_slot if (tag.defer_slot and tag.defer_slot not in ("0", "")) else ""
         return Recommendation(
             strategy=Strategy.AFTER_PROMPT,
             wait=wait,
@@ -113,6 +113,13 @@ def resolve(
         if tag is not None:
             rec = _apply_tag(rec, tag)
 
+    resolved_slot = ""
+    for name in sorted_tags:
+        t = all_tags.get(name)
+        if t and t.defer_slot and t.defer_slot in ("a", "b", "c"):
+            resolved_slot = t.defer_slot
+            break
+
     return ResolvedConfig(
         plugin=analysis.plugin,
         strategy=rec.strategy,
@@ -120,7 +127,7 @@ def resolve(
         eval_cache=rec.eval_cache,
         pick=rec.pick,
         wait=rec.wait,
-        defer_slot=rec.wait,
+        defer_slot=resolved_slot,
         applied_tags=tuple(sorted_tags),
     )
 

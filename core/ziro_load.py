@@ -37,12 +37,15 @@ class LoadSpec:
     reset_prompt: bool = False
     eval_cache: str = ""
     raw: str = ""
+    is_local: bool = False
 
 
 def emit_eager(spec: LoadSpec) -> str:
     """Emit znap source line for eager plugins."""
     if spec.eval_cache:
         return f"znap eval {spec.plugin} '{spec.eval_cache}'"
+    if spec.is_local or spec.plugin.startswith(("$ZIRO_HOME/", "~/.ziro/", "plugins/")):
+        return f"ziro local source {spec.plugin}"
     if spec.pick:
         return f"znap source {spec.plugin} --pick={spec.pick}"
     return f"znap source {spec.plugin}"
@@ -53,9 +56,9 @@ def emit_deferred(spec: LoadSpec) -> str:
     prefix = "ziro-defer"
     args: list[str] = []
 
-    if spec.wait:
+    if spec.wait and spec.wait != "0":
         args.append(f'--wait="{spec.wait}"')
-    if spec.sub_slot:
+    if spec.sub_slot and spec.sub_slot in ("a", "b", "c"):
         args.append(f"--slot={spec.sub_slot}")
     if spec.lazy_by_command:
         args.append(f'--lazy-by-command="{spec.lazy_by_command}"')
@@ -66,7 +69,13 @@ def emit_deferred(spec: LoadSpec) -> str:
     if spec.atload:
         args.append(f'--atload="{spec.atload}"')
 
-    inner = f"znap source {spec.plugin}"
+    if spec.is_local or spec.plugin.startswith(("$ZIRO_HOME/", "~/.ziro/", "plugins/")):
+        inner = f"ziro local source {spec.plugin}"
+    elif spec.pick:
+        inner = f"znap source {spec.plugin} --pick={spec.pick}"
+    else:
+        inner = f"znap source {spec.plugin}"
+
     if args:
         return f"{prefix} {' '.join(args)} {inner}"
     return f"{prefix} {inner}"
@@ -98,6 +107,7 @@ def from_resolved(
     wait: str = "",
     defer_slot: str = "",
     raw: str = "",
+    is_local: bool = False,
 ) -> LoadSpec:
     """Build LoadSpec from ResolvedConfig fields.
 
@@ -110,15 +120,19 @@ def from_resolved(
     if strategy_lower not in ("eager", "after-prompt", "lazy"):
         strategy_lower = "eager"  # safe fallback
 
+    sub_slot = defer_slot if defer_slot in ("a", "b", "c") else ""
+    wait_val = wait if (wait and wait != "0") else ""
+
     return LoadSpec(
         plugin=plugin,
         strategy=strategy_lower,  # type: ignore[arg-type]
-        wait=wait,
-        sub_slot=defer_slot,
+        wait=wait_val,
+        sub_slot=sub_slot,
         compile=compile_,
         pick=pick,
         eval_cache=(f"{plugin} init" if eval_cache else ""),
         raw=raw,
+        is_local=is_local,
     )
 
 
