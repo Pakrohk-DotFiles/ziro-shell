@@ -33,7 +33,7 @@ budget. The hot path — sourced on every shell start — targets **< 5ms**
 | 3 | Plugin runtime | `vendor/znap/` |
 
 The full layer model and the reasoning behind the Python/Zsh split are recorded
-in [ADR-003](.specify/decisions/ADR-003-two-layer-architecture.md).
+in [ADR-003](docs/wiki/sources/adr-003-two-layer-architecture.md).
 
 ## Backend
 
@@ -50,7 +50,7 @@ The deferral fallback chain in `integration.zsh` (Spec 004 R2):
 ziro-defer.plugin.zsh → zsh-defer.plugin.zsh → zsh-defer command → eager stub
 ```
 
-See [ADR-002](.specify/decisions/ADR-002-znap-permanent-zirodefer.md) for the
+See [ADR-002](docs/wiki/sources/adr-002-znap-permanent.md) for the
 benchmark (`command_lag 0.04ms` for znap + zsh-defer vs `17.2ms` for zinit
 turbo) and the decision record.
 
@@ -79,15 +79,15 @@ makes re-sourcing safe.
 
 ## Specs & decisions
 
-Architecture decisions live in `.specify/decisions/` as ADRs. They are local
-to this machine and are **not** committed to the public repo (see
-`.gitignore`).
+Official architecture decisions are recorded in `docs/wiki/sources/` as ADRs:
 
 | ADR | Topic |
 |-----|-------|
-| [ADR-002](.specify/decisions/ADR-002-znap-permanent-zirodefer.md) | znap permanent backend + ziro-defer |
-| [ADR-003](.specify/decisions/ADR-003-two-layer-architecture.md) | Two-layer Python/Zsh architecture |
-| [ADR-004](.specify/decisions/ADR-004-ziro-defer-fork-timing.md) | ziro-defer fork timing |
+| [ADR-002](docs/wiki/sources/adr-002-znap-permanent.md) | znap permanent backend + ziro-defer |
+| [ADR-003](docs/wiki/sources/adr-003-two-layer-architecture.md) | Two-layer Python/Zsh architecture |
+| [ADR-004](docs/wiki/sources/adr-004-fork-timing.md) | ziro-defer fork timing |
+| [ADR-005](docs/wiki/sources/adr-005-ziro-defer-directory-placement.md) | ziro-defer directory placement |
+| [ADR-006](docs/wiki/sources/adr-006-ghost-architecture.md) | Ghost architecture decisions |
 
 ## License
 
