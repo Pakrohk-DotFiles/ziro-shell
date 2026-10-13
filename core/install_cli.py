@@ -7,8 +7,28 @@ Spec: 006 R1
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
 import sys
 from pathlib import Path
+
+
+def _verify_starship() -> tuple[bool, str]:
+    """Verify starship is installed and working."""
+    if not shutil.which("starship"):
+        return False, "starship not found on PATH"
+    try:
+        r = subprocess.run(
+            ["starship", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if r.returncode != 0:
+            return False, f"starship --version failed: {r.stderr.strip()}"
+        return True, r.stdout.strip()
+    except (subprocess.TimeoutExpired, OSError) as e:
+        return False, f"starship check failed: {e}"
 
 
 def _config_dir() -> Path:
@@ -88,13 +108,28 @@ def cmd_install(argv: list[str]) -> int:
     _write_tools(cfg)
     print(f"✅ wrote: {cfg}/defaults.toml")
     print(f"✅ wrote: {cfg}/tools.toml")
+
+    ok, msg = _verify_starship()
+    if not ok:
+        print(file=sys.stderr)
+        print("⚠️  Starship not available", file=sys.stderr)
+        print(f"   Reason: {msg}", file=sys.stderr)
+        print("   Install: https://starship.rs/guide/#%F0%9F%9A%80-installation", file=sys.stderr)
+        print("   Or switch to an alternative prompt:", file=sys.stderr)
+        print("     ziro prompt set p10k     # powerlevel10k", file=sys.stderr)
+        print("     ziro prompt set pure     # pure", file=sys.stderr)
+        print("     ziro prompt set none     # no prompt management", file=sys.stderr)
+        # Non-fatal: install still succeeds
+
     print("")
     print("Next: ziro plugin add <name>")
     return 0
 
 
 def main(argv: list[str]) -> int:
-    return cmd_install(argv)
+    from core import trace as _trace
+    with _trace.span("install.run"):
+        return cmd_install(argv)
 
 
 __all__ = ["main"]

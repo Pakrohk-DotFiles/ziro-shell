@@ -10,14 +10,20 @@
 # Idempotency guard
 (( ${+ZIRO_LOADED} )) && return 0
 
-# Resolve paths (cached, XDG-aware)
-: ${ZIRO_HOME:="$HOME/.ziro"}
-: ${ZIRO_CONFIG:="${XDG_CONFIG_HOME:-$HOME/.config}/ziro"}
-: ${ZIRO_CACHE:="${XDG_CACHE_HOME:-$HOME/.cache}/ziro"}
-export ZIRO_HOME ZIRO_CONFIG ZIRO_CACHE
+# Resolve paths (XDG-compliant with legacy fallback)
+: ${XDG_DATA_HOME:="$HOME/.local/share"}
+: ${XDG_CONFIG_HOME:="$HOME/.config"}
+: ${XDG_CACHE_HOME:="$HOME/.cache"}
+: ${ZIRO_DATA:="$XDG_DATA_HOME/ziro"}
+: ${ZIRO_CONFIG:="$XDG_CONFIG_HOME/ziro"}
+: ${ZIRO_CACHE:="$XDG_CACHE_HOME/ziro"}
+: ${ZIRO_HOME:="$HOME/.ziro"}  # legacy compat (repo root)
+export ZIRO_DATA ZIRO_CONFIG ZIRO_CACHE ZIRO_HOME
 
 # Source znap (permanent backend, ADR-002)
-if [[ -r "$ZIRO_HOME/vendor/znap/znap.zsh" ]]; then
+if [[ -r "$ZIRO_DATA/vendor/znap/znap.zsh" ]]; then
+  source "$ZIRO_DATA/vendor/znap/znap.zsh"
+elif [[ -r "$ZIRO_HOME/vendor/znap/znap.zsh" ]]; then
   source "$ZIRO_HOME/vendor/znap/znap.zsh"
 fi
 
@@ -27,8 +33,12 @@ fi
 # 3. Eager stub (safe no-op)
 if [[ -r "$ZIRO_HOME/ziro-defer/ziro-defer.plugin.zsh" ]]; then
   source "$ZIRO_HOME/ziro-defer/ziro-defer.plugin.zsh"
+elif [[ -r "$ZIRO_DATA/vendor/ziro-defer/ziro-defer.plugin.zsh" ]]; then
+  source "$ZIRO_DATA/vendor/ziro-defer/ziro-defer.plugin.zsh"
 elif [[ -r "$ZIRO_HOME/vendor/ziro-defer/ziro-defer.plugin.zsh" ]]; then
   source "$ZIRO_HOME/vendor/ziro-defer/ziro-defer.plugin.zsh"
+elif [[ -r "$ZIRO_DATA/vendor/ziro-defer/zsh-defer.plugin.zsh" ]]; then
+  source "$ZIRO_DATA/vendor/ziro-defer/zsh-defer.plugin.zsh"
 elif [[ -r "$ZIRO_HOME/vendor/ziro-defer/zsh-defer.plugin.zsh" ]]; then
   source "$ZIRO_HOME/vendor/ziro-defer/zsh-defer.plugin.zsh"
 elif (( $+commands[zsh-defer] )); then

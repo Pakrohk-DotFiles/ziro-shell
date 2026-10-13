@@ -31,7 +31,9 @@ def _check_python() -> tuple[bool, str]:
 
 def _check_znap() -> tuple[bool, str]:
     home = _ziro_home()
+    data = Path(os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share")) / "ziro"
     candidates = [
+        data / "vendor" / "znap" / "znap.zsh",
         home / "vendor" / "znap" / "znap.zsh",
         home / "znap" / "znap.zsh",
     ]
@@ -43,12 +45,17 @@ def _check_znap() -> tuple[bool, str]:
 
 def _check_ziro_defer() -> tuple[bool, str]:
     home = _ziro_home()
-    z = home / "vendor" / "ziro-defer" / "ziro-defer.plugin.zsh"
-    u = home / "vendor" / "ziro-defer" / "zsh-defer.plugin.zsh"
-    if z.is_file():
-        return True, f"ziro-defer (fork): {z}"
-    if u.is_file():
-        return True, f"zsh-defer (upstream): {u} (fork pending Phase 5 follow-up)"
+    data = Path(os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share")) / "ziro"
+    candidates = [
+        (home / "ziro-defer" / "ziro-defer.plugin.zsh", "ziro-defer (canonical fork)"),
+        (data / "vendor" / "ziro-defer" / "ziro-defer.plugin.zsh", "ziro-defer (fork)"),
+        (home / "vendor" / "ziro-defer" / "ziro-defer.plugin.zsh", "ziro-defer (fork)"),
+        (data / "vendor" / "ziro-defer" / "zsh-defer.plugin.zsh", "zsh-defer (upstream)"),
+        (home / "vendor" / "ziro-defer" / "zsh-defer.plugin.zsh", "zsh-defer (upstream)"),
+    ]
+    for p, label in candidates:
+        if p.is_file():
+            return True, f"{label}: {p}"
     return False, "ziro-defer/zsh-defer not found"
 
 
@@ -106,7 +113,9 @@ def cmd_doctor(argv: list[str]) -> int:
 
 
 def main(argv: list[str]) -> int:
-    return cmd_doctor(argv)
+    from core import trace as _trace
+    with _trace.span("doctor.run"):
+        return cmd_doctor(argv)
 
 
 __all__ = ["main"]

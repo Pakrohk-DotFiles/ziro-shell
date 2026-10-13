@@ -45,6 +45,19 @@ class TestInstallCli(unittest.TestCase):
         install_cli.main(["--default"])
         self.assertEqual((cfg / "defaults.toml").read_text(), "# custom\n")
 
+    def test_verify_starship_missing(self):
+        from unittest.mock import patch
+        with patch("shutil.which", return_value=None):
+            ok, msg = install_cli._verify_starship()
+            self.assertFalse(ok)
+            self.assertIn("not found on PATH", msg)
+
+            err_buf = io.StringIO()
+            with redirect_stdout(io.StringIO()), patch("sys.stderr", err_buf):
+                rc = install_cli.main(["--default"])
+            self.assertEqual(rc, 0)
+            self.assertIn("Starship not available", err_buf.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
