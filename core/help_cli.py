@@ -84,10 +84,12 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         summary="Remove an installed plugin",
         usage="ziro plugin remove <name> [--dry-run]",
         flags=[
+            ("<name>", "Name of plugin to remove"),
             ("--dry-run", "Preview plugin removal without deleting files"),
         ],
         examples=[
             "ziro plugin remove zsh-autosuggestions",
+            "ziro plugin remove wd --dry-run",
         ],
         related=["plugin list"],
     ),
@@ -104,8 +106,12 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         name="plugin show",
         summary="Show detailed plugin analysis and tags",
         usage="ziro plugin show <name>",
+        flags=[
+            ("<name>", "Name of plugin to inspect"),
+        ],
         examples=[
             "ziro plugin show zsh-autosuggestions",
+            "ziro plugin show wd",
         ],
         related=["plugin list", "tag show"],
     ),
@@ -147,8 +153,12 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         name="tag show",
         summary="Show tags applied to a specific plugin",
         usage="ziro tag show <plugin>",
+        flags=[
+            ("<plugin>", "Name of plugin whose tags to display"),
+        ],
         examples=[
             "ziro tag show zsh-autosuggestions",
+            "ziro tag show git",
         ],
         related=["tag list", "tag add"],
     ),
@@ -156,8 +166,13 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         name="tag add",
         summary="Apply a tag to a plugin",
         usage="ziro tag add <plugin> <@tag>",
+        flags=[
+            ("<plugin>", "Target plugin name"),
+            ("<@tag>", "Tag name to apply (e.g. @eager, @lazy, @no-compile)"),
+        ],
         examples=[
             "ziro tag add zsh-autosuggestions @eager",
+            "ziro tag add git @no-compile",
         ],
         related=["tag remove", "tag show"],
     ),
@@ -165,6 +180,10 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         name="tag remove",
         summary="Remove a tag from a plugin",
         usage="ziro tag remove <plugin> <@tag>",
+        flags=[
+            ("<plugin>", "Target plugin name"),
+            ("<@tag>", "Tag name to remove"),
+        ],
         examples=[
             "ziro tag remove zsh-autosuggestions @eager",
         ],
@@ -174,6 +193,9 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         name="tag reset",
         summary="Reset user tags for a plugin",
         usage="ziro tag reset <plugin>",
+        flags=[
+            ("<plugin>", "Target plugin name to reset tags to empty"),
+        ],
         examples=[
             "ziro tag reset zsh-autosuggestions",
         ],
@@ -224,9 +246,13 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         name="suggest set",
         summary="Set active auto-suggest provider",
         usage="ziro suggest set <name>",
+        flags=[
+            ("<name>", "Provider name: ziro-ghost (default), zsh-autosuggestions, none"),
+        ],
         examples=[
-            "ziro suggest set zsh-autosuggestions",
             "ziro suggest set ziro-ghost",
+            "ziro suggest set zsh-autosuggestions",
+            "ziro suggest set none",
         ],
         related=["suggest list", "suggest disable"],
     ),
@@ -262,9 +288,13 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
     "theme list": HelpEntry(
         name="theme list",
         summary="List available theme presets and components",
-        usage="ziro theme list",
+        usage="ziro theme list [--component <comp>]",
+        flags=[
+            ("--component <comp>", "Component to filter by: prompt, auto_suggest, colors, syntax_highlighting"),
+        ],
         examples=[
             "ziro theme list",
+            "ziro theme list --component prompt",
         ],
         related=["theme current", "theme apply"],
     ),
@@ -338,6 +368,9 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         name="prompt set",
         summary="Set active prompt engine",
         usage="ziro prompt set <name>",
+        flags=[
+            ("<name>", "Supported prompt engines: starship, powerlevel10k (p10k), pure, none"),
+        ],
         examples=[
             "ziro prompt set starship",
             "ziro prompt set p10k",
@@ -366,9 +399,13 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         name="config show",
         summary="Display configuration file contents",
         usage="ziro config show [defaults | tools]",
+        flags=[
+            ("[defaults | tools]", "File to display (default: summarize all config files)"),
+        ],
         examples=[
             "ziro config show",
             "ziro config show tools",
+            "ziro config show defaults",
         ],
         related=["config edit"],
     ),
@@ -376,6 +413,9 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         name="config edit",
         summary="Edit configuration file in $EDITOR",
         usage="ziro config edit [defaults | tools]",
+        flags=[
+            ("[defaults | tools]", "File to edit in $EDITOR (default: defaults.toml)"),
+        ],
         examples=[
             "ziro config edit defaults",
             "ziro config edit tools",
@@ -386,6 +426,10 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         name="config set",
         summary="Set configuration option in defaults.toml",
         usage="ziro config set <category.key> <value>",
+        flags=[
+            ("<category.key>", "Configuration path (e.g. prompt.default, auto_suggest.default, ui.rich)"),
+            ("<value>", "New value to assign"),
+        ],
         examples=[
             "ziro config set prompt.default pure",
             "ziro config set auto_suggest.default zsh-autosuggestions",
