@@ -113,9 +113,7 @@ def cmd_doctor(argv: list[str]) -> int:
 
 
 def main(argv: list[str]) -> int:
-    from core import trace as _trace
-    with _trace.span("doctor.run"):
-        return cmd_doctor(argv)
+    return cmd_doctor(argv)
 
 
 __all__ = ["main"]

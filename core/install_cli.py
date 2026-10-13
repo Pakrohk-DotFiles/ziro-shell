@@ -127,9 +127,7 @@ def cmd_install(argv: list[str]) -> int:
 
 
 def main(argv: list[str]) -> int:
-    from core import trace as _trace
-    with _trace.span("install.run"):
-        return cmd_install(argv)
+    return cmd_install(argv)
 
 
 __all__ = ["main"]
