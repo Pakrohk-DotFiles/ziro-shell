@@ -23,6 +23,7 @@ declare -A MAP=(
   ["ADR-004-ziro-defer-fork-timing.md"]="adr-004-fork-timing.md"
   ["ADR-005-ziro-defer-directory-placement.md"]="adr-005-ziro-defer-directory-placement.md"
   ["ADR-006-ghost-architecture.md"]="adr-006-ghost-architecture.md"
+  ["ADR-007-versioning-policy.md"]="adr-007-versioning-policy.md"
 )
 
 count=0

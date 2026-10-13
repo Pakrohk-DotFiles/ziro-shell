@@ -1,8 +1,12 @@
 # Changelog
 
 All notable changes to ziro-shell are documented here.
+This project adheres to a 3-tier versioning discipline (ADR-007, Constitution Principle XV):
+- **Patch Tier (`X.X.Y`)**: Bug fixes, internal optimizations, UI polish, CLI UX enhancements, and standalone plugin additions.
+- **Minor Tier (`X.Y.X`)**: Large new features and full multi-layer subsystem orchestrations.
+- **Major Tier (`Y.X.X`)**: Fundamental architecture rewrites or paradigm shifts breaking Core Principles.
 
-## [1.0.0] — 2026-09-24
+## [1.0.0] — Foundation Release (2026-10-13)
 
 ### Added
 
