@@ -8,7 +8,7 @@
 # Override: export ZSH_ENV_TYPE=server|desktop
 # Root user is FORCED to server mode.
 
-typeset -g _ZIRO_ENV_TYPE_CACHE=""
+(( $+_ZIRO_ENV_TYPE_CACHE )) || typeset -g _ZIRO_ENV_TYPE_CACHE=""
 
 ziro_env_type() {
   if [[ -n "$_ZIRO_ENV_TYPE_CACHE" ]]; then

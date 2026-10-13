@@ -9,22 +9,12 @@ _ziro_cmd_help() {
   : ${ZIRO_HOME:="$HOME/.ziro"}
   : ${ZIRO_CONFIG:="${XDG_CONFIG_HOME:-$HOME/.config}/ziro"}
 
-  if [[ $# -eq 0 || ( $# -eq 1 && ( "$1" == "--help" || "$1" == "-h" ) ) ]]; then
-    _ziro_help_static
-    return 0
-  fi
-
-  if command -v python3 &>/dev/null; then
+  if [[ $# -gt 0 && "$1" != "--help" && "$1" != "-h" ]] && command -v python3 &>/dev/null; then
     (cd "$ZIRO_HOME" && ZIRO_HOME="$ZIRO_HOME" ZIRO_CONFIG="$ZIRO_CONFIG" \
       python3 -m core help "$@")
     return $?
   fi
 
-  _ziro_help_static
-  return 0
-}
-
-_ziro_help_static() {
   cat << 'HELP'
 ziro — fast, layered Zsh runtime customization
 

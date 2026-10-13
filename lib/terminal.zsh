@@ -6,8 +6,8 @@
 #
 # Detects: Nerd Font availability, truecolor support.
 
-typeset -g _ZIRO_NERD_FONT_CACHE=""
-typeset -g _ZIRO_TRUECOLOR_CACHE=""
+(( $+_ZIRO_NERD_FONT_CACHE )) || typeset -g _ZIRO_NERD_FONT_CACHE=""
+(( $+_ZIRO_TRUECOLOR_CACHE )) || typeset -g _ZIRO_TRUECOLOR_CACHE=""
 
 ziro_has_nerd_font() {
   if [[ -n "$_ZIRO_NERD_FONT_CACHE" ]]; then

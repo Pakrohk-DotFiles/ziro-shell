@@ -4,7 +4,7 @@
 # Spec: 008
 # AUTO-GENERATED: no
 
-typeset -g _ZIRO_LOG_LEVEL="${ZIRO_LOG_LEVEL:-warn}"
+(( $+_ZIRO_LOG_LEVEL )) || typeset -g _ZIRO_LOG_LEVEL="${ZIRO_LOG_LEVEL:-warn}"
 
 ziro_log() {
   emulate -L zsh
