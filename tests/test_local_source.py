@@ -6,14 +6,22 @@ import tempfile
 import unittest
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+INTEGRATION_ZSH = REPO_ROOT / "integration.zsh"
+
 
 class TestZiroLocalSource(unittest.TestCase):
     """Test the _ziro_local_source function via zsh subprocess."""
 
     def _run_zsh(self, script: str, timeout: int = 10) -> tuple[int, str, str]:
         """Run a zsh script and capture output."""
+        full_script = f"""
+            export ZIRO_HOME='{REPO_ROOT}'
+            source '{INTEGRATION_ZSH}'
+            {script}
+        """
         result = subprocess.run(
-            ['zsh', '-c', script],
+            ['zsh', '-c', full_script],
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -26,7 +34,6 @@ class TestZiroLocalSource(unittest.TestCase):
             plugin = Path(tmp) / 'my.plugin.zsh'
             plugin.write_text('export MY_PLUGIN_LOADED=1\n')
             script = f"""
-                source ~/.ziro/integration.zsh
                 _ziro_local_source '{tmp}'
                 echo "MY_PLUGIN_LOADED=$MY_PLUGIN_LOADED"
             """
@@ -40,7 +47,6 @@ class TestZiroLocalSource(unittest.TestCase):
             plugin = Path(tmp) / 'direct.zsh'
             plugin.write_text('export DIRECT_LOADED=1\n')
             script = f"""
-                source ~/.ziro/integration.zsh
                 _ziro_local_source '{plugin}'
                 echo "DIRECT_LOADED=$DIRECT_LOADED"
             """
@@ -51,7 +57,6 @@ class TestZiroLocalSource(unittest.TestCase):
     def test_missing_path_fails(self):
         """_ziro_local_source returns error for missing path."""
         script = """
-            source ~/.ziro/integration.zsh
             _ziro_local_source /nonexistent/path/xyz
             echo "rc=$?"
         """
@@ -65,7 +70,6 @@ class TestZiroLocalSource(unittest.TestCase):
             plugin = Path(tmp) / 'compiled.plugin.zsh'
             plugin.write_text('export COMPILED=1\n')
             script = f"""
-                source ~/.ziro/integration.zsh
                 _ziro_local_source '{plugin}'
                 ls -la '{tmp}'/*.zwc 2>&1 | head -2
             """
@@ -79,7 +83,6 @@ class TestZiroLocalSource(unittest.TestCase):
             plugin.write_text('export REUSE=1\n')
             # First run — compile
             script1 = f"""
-                source ~/.ziro/integration.zsh
                 _ziro_local_source '{plugin}'
             """
             self._run_zsh(script1)
@@ -98,7 +101,6 @@ class TestZiroLocalSource(unittest.TestCase):
             plugin = Path(tmp) / 'invalidated.plugin.zsh'
             plugin.write_text('export V1=1\n')
             script = f"""
-                source ~/.ziro/integration.zsh
                 _ziro_local_source '{plugin}'
             """
             self._run_zsh(script)
@@ -118,7 +120,6 @@ class TestZiroLocalSource(unittest.TestCase):
             plugin = Path(tmp) / 'dispatched.plugin.zsh'
             plugin.write_text('export DISPATCHED=1\n')
             script = f"""
-                source ~/.ziro/integration.zsh
                 ziro-local source '{tmp}'
                 echo "DISPATCHED=$DISPATCHED"
             """
@@ -132,7 +133,6 @@ class TestZiroLocalSource(unittest.TestCase):
             plugin = Path(tmp) / 'deferred.plugin.zsh'
             plugin.write_text('export DEFERRED=1\n')
             script = f"""
-                source ~/.ziro/integration.zsh
                 _ziro_local_source '{plugin}' --defer
                 sleep 0.5
                 echo "DEFERRED=$DEFERRED"
