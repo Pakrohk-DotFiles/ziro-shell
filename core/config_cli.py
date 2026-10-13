@@ -58,14 +58,121 @@ def cmd_edit(argv: list[str]) -> int:
     return 0
 
 
+KNOWN_CATEGORIES = {
+    "prompt",
+    "auto_suggest",
+    "navigation",
+    "ui",
+    "plugins",
+    "theme",
+    "version",
+}
+
+VALID_PROMPTS = {"starship", "powerlevel10k", "p10k", "pure", "none"}
+VALID_SUGGEST = {"ziro-ghost", "zsh-autosuggestions", "none"}
+
+
 def cmd_set(argv: list[str]) -> int:
     from core.help_cli import handle_help_if_requested
     ret = handle_help_if_requested(argv, "config", subcommand="set")
     if ret is not None:
         return ret
-    print("NOTE: config set is not yet implemented.", file=sys.stderr)
-    print(" Use `config edit` for now.", file=sys.stderr)
-    return 1
+
+    if len(argv) < 2:
+        print("usage: config set <category.key> <value>", file=sys.stderr)
+        return 2
+
+    key_arg, value_arg = argv[0], argv[1]
+    if "." in key_arg:
+        category, subkey = key_arg.split(".", 1)
+    else:
+        category, subkey = key_arg, "default"
+
+    if category not in KNOWN_CATEGORIES:
+        print(f"error: unknown configuration category '{category}'", file=sys.stderr)
+        print(f"available categories: {', '.join(sorted(KNOWN_CATEGORIES))}", file=sys.stderr)
+        return 2
+
+    # Value validation
+    if category == "prompt" and value_arg.lower() not in VALID_PROMPTS:
+        print(f"error: unsupported prompt value '{value_arg}'", file=sys.stderr)
+        print(f"supported: {', '.join(sorted(VALID_PROMPTS))}", file=sys.stderr)
+        return 2
+
+    if category == "auto_suggest" and value_arg.lower() not in VALID_SUGGEST:
+        print(f"error: unsupported auto_suggest value '{value_arg}'", file=sys.stderr)
+        print(f"supported: {', '.join(sorted(VALID_SUGGEST))}", file=sys.stderr)
+        return 2
+
+    if category == "ui" and subkey == "rich" and value_arg.lower() not in ("true", "false", "1", "0"):
+        print(f"error: invalid boolean value '{value_arg}' for ui.rich", file=sys.stderr)
+        return 2
+
+    cfg = _config_dir()
+    cfg.mkdir(parents=True, exist_ok=True)
+    defaults_path = cfg / "defaults.toml"
+
+    import tomllib
+    data: dict = {}
+    if defaults_path.is_file():
+        try:
+            with defaults_path.open("rb") as f:
+                data = tomllib.load(f)
+        except Exception:
+            data = {}
+
+    old_val = data.get(category, {}).get(subkey, "<none>")
+    if category not in data or not isinstance(data[category], dict):
+        data[category] = {}
+
+    if value_arg.lower() in ("true", "false"):
+        val_to_save: bool | str = (value_arg.lower() == "true")
+    else:
+        val_to_save = value_arg
+
+    data[category][subkey] = val_to_save
+
+    # Write out defaults.toml
+    lines = [
+        "# ziro-shell — user defaults",
+        "# Editable by hand. Regenerated only on `ziro config reset`.",
+        "# Layer: 0 (config) · Spec: 006 · AUTO-GENERATED: no",
+        "",
+    ]
+    for cat, section in data.items():
+        if isinstance(section, dict):
+            lines.append(f"[{cat}]")
+            for k, v in section.items():
+                if isinstance(v, bool):
+                    lines.append(f"{k} = {'true' if v else 'false'}")
+                elif isinstance(v, int):
+                    lines.append(f"{k} = {v}")
+                else:
+                    lines.append(f'{k} = "{v}"')
+            lines.append("")
+
+    defaults_path.write_text("\n".join(lines))
+    print(f"✅ config updated: {category}.{subkey}: {old_val} -> {value_arg}")
+
+    # Regenerate if affecting shell loading
+    if category in ("plugins", "prompt", "auto_suggest"):
+        try:
+            from core.regenerate import regenerate
+            ziro_home = Path(os.environ.get("ZIRO_HOME", Path.home() / ".ziro"))
+            plugins_dir = ziro_home / "plugins"
+            plugin_dirs: list[tuple[Path, str]] = []
+            if plugins_dir.is_dir():
+                plugin_dirs = [
+                    (p, p.name)
+                    for p in plugins_dir.iterdir()
+                    if p.is_dir() and not p.name.startswith(".")
+                ]
+            res = regenerate(cfg, plugin_dirs, trigger="manual")
+            print(f"✅ regenerated: {res.output}")
+        except Exception:
+            pass
+
+    return 0
 
 
 def main(argv: list[str]) -> int:

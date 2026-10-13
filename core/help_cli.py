@@ -119,7 +119,7 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
             "add": "Apply a tag to a plugin",
             "remove": "Remove a tag from a plugin",
             "reset": "Reset user tags for a plugin to defaults",
-            "define": "Define a custom tag (coming soon)",
+            "define": "Define a custom tag in user.toml",
         },
         examples=[
             "ziro tag list",
@@ -181,12 +181,19 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
     ),
     "tag define": HelpEntry(
         name="tag define",
-        summary="Define a custom tag",
-        usage="ziro tag define <name> [options]",
-        examples=[
-            "ziro tag define @custom",
+        summary="Define a custom tag in user.toml",
+        usage="ziro tag define <@name> --strategy=<eager|defer|raw> [--priority=<N>] [--description=<text>] [--force]",
+        flags=[
+            ("--strategy=<val>", "Load strategy: eager, defer, or raw"),
+            ("--priority=<N>", "Priority integer 0-100 (default: 5)"),
+            ("--description=<text>", "Short description of the tag"),
+            ("--force", "Override existing builtin or user tag"),
         ],
-        related=["tag list"],
+        examples=[
+            "ziro tag define @custom --strategy=eager --priority=7",
+            "ziro tag define @slow --strategy=defer --priority=3 --description='Load late'",
+        ],
+        related=["tag list", "tag show"],
     ),
     "suggest": HelpEntry(
         name="suggest",
@@ -346,7 +353,7 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         subcommands={
             "show": "Print contents of defaults.toml or tools.toml",
             "edit": "Open defaults.toml or tools.toml in $EDITOR",
-            "set": "Set configuration key (coming soon)",
+            "set": "Set configuration key in defaults.toml",
         },
         examples=[
             "ziro config show",
@@ -377,12 +384,14 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
     ),
     "config set": HelpEntry(
         name="config set",
-        summary="Set configuration option value",
-        usage="ziro config set <key> <value>",
+        summary="Set configuration option in defaults.toml",
+        usage="ziro config set <category.key> <value>",
         examples=[
-            "ziro config set prompt starship",
+            "ziro config set prompt.default pure",
+            "ziro config set auto_suggest.default zsh-autosuggestions",
+            "ziro config set ui.rich false",
         ],
-        related=["config show"],
+        related=["config show", "config edit"],
     ),
     "doctor": HelpEntry(
         name="doctor",

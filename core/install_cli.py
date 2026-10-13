@@ -70,6 +70,12 @@ def _write_tools(cfg: Path) -> None:
     tools.write_text(content)
 
 
+def _write_tags(cfg: Path) -> None:
+    """Ensure ~/.config/ziro/tags/builtin.toml exists."""
+    from core.tags import ensure_builtin_tags_file
+    ensure_builtin_tags_file(cfg)
+
+
 def cmd_install(argv: list[str]) -> int:
     from core.help_cli import handle_help_if_requested
     ret = handle_help_if_requested(argv, "install")
@@ -106,13 +112,15 @@ def cmd_install(argv: list[str]) -> int:
     print(f"mode: {choice}")
 
     if dry_run:
-        print("[dry-run] would write defaults.toml, tools.toml")
+        print("[dry-run] would write defaults.toml, tools.toml, tags/builtin.toml")
         return 0
 
     _write_defaults(cfg)
     _write_tools(cfg)
+    _write_tags(cfg)
     print(f"✅ wrote: {cfg}/defaults.toml")
     print(f"✅ wrote: {cfg}/tools.toml")
+    print(f"✅ wrote: {cfg}/tags/builtin.toml")
 
     ok, msg = _verify_starship()
     if not ok:
