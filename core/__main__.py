@@ -21,6 +21,15 @@ def main(argv: list[str] | None = None) -> int:
     sub = args[0]
     rest = args[1:]
 
+    if sub in ("--help", "-h"):
+        from core import help_cli
+        return help_cli.cmd_help(rest)
+    if sub in ("--version", "-v"):
+        print("ziro-shell v1.0.1")
+        return 0
+    if sub == "help":
+        from core import help_cli
+        return help_cli.cmd_help(rest)
     if sub == "theme":
         from core import theme_cli
         return theme_cli.main(rest)

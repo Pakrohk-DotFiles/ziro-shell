@@ -29,6 +29,10 @@ def _themes_dir() -> Path:
 
 
 def cmd_list(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "theme", subcommand="list")
+    if ret is not None:
+        return ret
     component = "prompt"
     if "--component" in argv:
         idx = argv.index("--component")
@@ -44,6 +48,10 @@ def cmd_list(argv: list[str]) -> int:
 
 
 def cmd_current(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "theme", subcommand="current")
+    if ret is not None:
+        return ret
     sel = read_theme_conf(_config_dir())
     print(f"prompt: {sel.prompt} ({sel.prompt_component})")
     print(f"auto_suggest: {sel.auto_suggest} ({sel.auto_suggest_component})")
@@ -53,6 +61,10 @@ def cmd_current(argv: list[str]) -> int:
 
 
 def cmd_apply(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "theme", subcommand="apply")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: theme apply <name> [--component <comp>]", file=sys.stderr)
         return 2
@@ -84,6 +96,10 @@ def cmd_apply(argv: list[str]) -> int:
 
 
 def cmd_reset(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "theme", subcommand="reset")
+    if ret is not None:
+        return ret
     cfg = _config_dir()
     write_theme_conf(cfg, ThemeSelection())
     print("theme reset to defaults")
@@ -91,6 +107,10 @@ def cmd_reset(argv: list[str]) -> int:
 
 
 def main(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "theme")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: theme <list|current|apply|reset>", file=sys.stderr)
         return 2

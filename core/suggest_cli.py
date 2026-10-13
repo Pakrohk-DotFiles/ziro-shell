@@ -21,6 +21,10 @@ def _config_dir() -> Path:
 
 
 def cmd_list(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "suggest", subcommand="list")
+    if ret is not None:
+        return ret
     print("available auto_suggest options:")
     print(" * ziro-ghost (default)")
     print(" zsh-autosuggestions (classic alternative)")
@@ -29,6 +33,10 @@ def cmd_list(argv: list[str]) -> int:
 
 
 def cmd_set(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "suggest", subcommand="set")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: suggest set <name>", file=sys.stderr)
         return 2
@@ -54,10 +62,18 @@ def cmd_set(argv: list[str]) -> int:
 
 
 def cmd_disable(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "suggest", subcommand="disable")
+    if ret is not None:
+        return ret
     return cmd_set(["none"])
 
 
 def main(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "suggest")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: suggest <list|set|disable>", file=sys.stderr)
         return 2

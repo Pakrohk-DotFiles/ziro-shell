@@ -20,6 +20,10 @@ def _config_dir() -> Path:
 
 
 def cmd_show(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "config", subcommand="show")
+    if ret is not None:
+        return ret
     cfg = _config_dir()
     print(f"config dir: {cfg}")
     print()
@@ -31,6 +35,10 @@ def cmd_show(argv: list[str]) -> int:
 
 
 def cmd_edit(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "config", subcommand="edit")
+    if ret is not None:
+        return ret
     cfg = _config_dir()
     target = argv[0] if argv else "defaults.toml"
     path = cfg / target
@@ -51,12 +59,20 @@ def cmd_edit(argv: list[str]) -> int:
 
 
 def cmd_set(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "config", subcommand="set")
+    if ret is not None:
+        return ret
     print("NOTE: config set is not yet implemented.", file=sys.stderr)
     print(" Use `config edit` for now.", file=sys.stderr)
     return 1
 
 
 def main(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "config")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: config <show|edit|set>", file=sys.stderr)
         return 2

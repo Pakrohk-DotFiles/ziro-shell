@@ -1,21 +1,22 @@
 #!/usr/bin/env zsh
-# ziro-shell — CLI dispatcher
-# Layer: 0 (CLI surface)
-# Spec: 008
-# AUTO-GENERATED: no
+# ziro-shell — CLI dispatcher (Layer: 0, Spec: 008)
 
 _ziro_dispatch() {
   emulate -L zsh
   local cmd="${1:-help}"
   [[ $# -gt 0 ]] && shift
 
-  : ${ZIRO_HOME:="$HOME/.ziro"}
+  case "$cmd" in
+    --help|-h) cmd="help" ;;
+    --version|-v) print "ziro-shell v1.0.1"; return 0 ;;
+  esac
 
+  : ${ZIRO_HOME:="$HOME/.ziro"}
   local module="$ZIRO_HOME/commands/${cmd}.zsh"
 
   if [[ ! -r "$module" ]]; then
     source "$ZIRO_HOME/commands/help.zsh" 2>/dev/null
-    _ziro_cmd_help "unknown command: $cmd"
+    _ziro_cmd_help "$cmd"
     return 1
   fi
 

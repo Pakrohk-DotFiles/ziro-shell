@@ -29,6 +29,10 @@ def _prompts_dir() -> Path:
 
 
 def cmd_list(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "prompt", subcommand="list")
+    if ret is not None:
+        return ret
     available = list_prompts(_prompts_dir())
     if not available:
         print("(no prompt adapters found)")
@@ -41,11 +45,19 @@ def cmd_list(argv: list[str]) -> int:
 
 
 def cmd_current(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "prompt", subcommand="current")
+    if ret is not None:
+        return ret
     print(read_prompt_conf(_config_dir()))
     return 0
 
 
 def cmd_set(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "prompt", subcommand="set")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: prompt set <name>", file=sys.stderr)
         print(f"available: {', '.join(SUPPORTED_PROMPTS)}", file=sys.stderr)
@@ -62,6 +74,10 @@ def cmd_set(argv: list[str]) -> int:
 
 
 def main(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "prompt")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: prompt <list|current|set>", file=sys.stderr)
         return 2

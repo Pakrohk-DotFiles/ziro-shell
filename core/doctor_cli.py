@@ -76,6 +76,10 @@ def _check_generated() -> tuple[bool, str]:
 
 
 def cmd_doctor(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "doctor")
+    if ret is not None:
+        return ret
     verbose = "--verbose" in argv or "-v" in argv
     print("ziro doctor")
     print("=" * 50)

@@ -26,6 +26,10 @@ def _config_dir() -> Path:
 
 def cmd_list(argv: list[str]) -> int:
     """List all built-in + user tags."""
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "tag", subcommand="list")
+    if ret is not None:
+        return ret
     cfg = _config_dir()
     all_tags = load_all_tags(cfg)
     if not all_tags:
@@ -39,6 +43,10 @@ def cmd_list(argv: list[str]) -> int:
 
 def cmd_show(argv: list[str]) -> int:
     """Show tags for one plugin."""
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "tag", subcommand="show")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: tag show <plugin>", file=sys.stderr)
         return 2
@@ -54,6 +62,10 @@ def cmd_show(argv: list[str]) -> int:
 
 def cmd_add(argv: list[str]) -> int:
     """Add tag to plugin."""
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "tag", subcommand="add")
+    if ret is not None:
+        return ret
     if len(argv) < 2:
         print("usage: tag add <plugin> <@tag>", file=sys.stderr)
         return 2
@@ -77,6 +89,10 @@ def cmd_add(argv: list[str]) -> int:
 
 
 def cmd_remove(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "tag", subcommand="remove")
+    if ret is not None:
+        return ret
     if len(argv) < 2:
         print("usage: tag remove <plugin> <@tag>", file=sys.stderr)
         return 2
@@ -95,6 +111,10 @@ def cmd_remove(argv: list[str]) -> int:
 
 
 def cmd_reset(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "tag", subcommand="reset")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: tag reset <plugin>", file=sys.stderr)
         return 2
@@ -106,12 +126,20 @@ def cmd_reset(argv: list[str]) -> int:
 
 
 def cmd_define(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "tag", subcommand="define")
+    if ret is not None:
+        return ret
     print("NOTE: tag define is not yet implemented.", file=sys.stderr)
     print(" Will be added in a follow-up phase.", file=sys.stderr)
     return 1
 
 
 def main(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "tag")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: tag <list|show|add|remove|reset|define>", file=sys.stderr)
         return 2

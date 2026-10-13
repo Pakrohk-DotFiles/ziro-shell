@@ -71,6 +71,11 @@ def _write_tools(cfg: Path) -> None:
 
 
 def cmd_install(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "install")
+    if ret is not None:
+        return ret
+
     dry_run = "--dry-run" in argv
     default_mode = "--default" in argv
     custom_mode = "--custom" in argv

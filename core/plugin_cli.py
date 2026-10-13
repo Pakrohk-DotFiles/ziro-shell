@@ -55,6 +55,10 @@ def _existing_configs() -> list:
 
 
 def cmd_list(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "plugin", subcommand="list")
+    if ret is not None:
+        return ret
     dirs = _list_plugin_dirs(_ziro_home())
     if not dirs:
         print("(no plugins installed)")
@@ -65,6 +69,10 @@ def cmd_list(argv: list[str]) -> int:
 
 
 def cmd_show(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "plugin", subcommand="show")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: plugin show <name>", file=sys.stderr)
         return 2
@@ -84,6 +92,10 @@ def cmd_show(argv: list[str]) -> int:
 
 
 def cmd_add(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "plugin", subcommand="add")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: plugin add <source> [name] [@tags...]", file=sys.stderr)
         return 2
@@ -127,6 +139,10 @@ def cmd_add(argv: list[str]) -> int:
 
 
 def cmd_remove(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "plugin", subcommand="remove")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: plugin remove <name>", file=sys.stderr)
         return 2
@@ -152,6 +168,10 @@ def cmd_remove(argv: list[str]) -> int:
 
 
 def main(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "plugin")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: plugin <add|remove|list|show>", file=sys.stderr)
         return 2

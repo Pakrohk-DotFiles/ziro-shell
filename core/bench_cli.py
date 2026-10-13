@@ -47,6 +47,10 @@ def _median_of(times: list[float]) -> float:
 
 
 def cmd_bench(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "bench")
+    if ret is not None:
+        return ret
     iters = 11
     if "--iters" in argv:
         idx = argv.index("--iters")
