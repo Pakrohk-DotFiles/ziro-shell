@@ -27,8 +27,14 @@ class TestUpdateCLI(unittest.TestCase):
         self.cache_dir = self.test_dir / "cache"
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.old_ziro_home = os.environ.get("ZIRO_HOME")
+        os.environ["ZIRO_HOME"] = str(REPO_ROOT)
 
     def tearDown(self) -> None:
+        if self.old_ziro_home is not None:
+            os.environ["ZIRO_HOME"] = self.old_ziro_home
+        else:
+            os.environ.pop("ZIRO_HOME", None)
         self.temp_dir.cleanup()
 
     def test_opt_out_detection(self) -> None:

@@ -18,7 +18,14 @@ def _repo_dir() -> Path:
     env = os.environ.get("ZIRO_HOME")
     if env:
         return Path(env)
-    return Path.home() / ".ziro"
+    default_home = Path.home() / ".ziro"
+    if (default_home / ".git").exists():
+        return default_home
+    # Fallback to repository containing this source file (development / CI mode)
+    candidate = Path(__file__).resolve().parent.parent
+    if (candidate / ".git").exists():
+        return candidate
+    return default_home
 
 
 def _cache_dir() -> Path:
@@ -145,23 +152,28 @@ def check_update(
                 check=True,
                 timeout=10,
             )
-        except (subprocess.SubprocessError, OSError) as e:
-            result["error"] = f"git fetch failed: {e}"
-            # Still proceed to check existing origin/main if available
+        except (subprocess.SubprocessError, OSError):
+            # Non-fatal: offline or unable to reach origin
+            pass
 
-    try:
-        remote_hash_res = subprocess.run(
-            ["git", "-C", str(repo), "rev-parse", "origin/main"],
+    remote_hash = ""
+    remote_ref = None
+    for ref_candidate in ("origin/main", "FETCH_HEAD"):
+        p = subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", ref_candidate],
             capture_output=True,
             text=True,
-            check=True,
         )
-        remote_hash = remote_hash_res.stdout.strip()
-        result["remote"] = remote_hash
+        if p.returncode == 0 and p.stdout.strip():
+            remote_hash = p.stdout.strip()
+            remote_ref = ref_candidate
+            break
 
-        if remote_hash and local_hash:
+    result["remote"] = remote_hash
+    if remote_hash and local_hash and remote_ref:
+        try:
             rev_count = subprocess.run(
-                ["git", "-C", str(repo), "rev-list", "--count", "HEAD..origin/main"],
+                ["git", "-C", str(repo), "rev-list", "--count", f"HEAD..{remote_ref}"],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -169,9 +181,8 @@ def check_update(
             behind = int(rev_count.stdout.strip() or "0")
             result["behind"] = behind
             result["available"] = behind > 0
-    except (subprocess.SubprocessError, OSError, ValueError) as e:
-        if not result["error"]:
-            result["error"] = f"git rev-list failed: {e}"
+        except (subprocess.SubprocessError, OSError, ValueError):
+            pass
 
     write_cache(cache_file, result)
     return result
