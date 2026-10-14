@@ -76,6 +76,27 @@ def _write_tags(cfg: Path) -> None:
     ensure_builtin_tags_file(cfg)
 
 
+def _data_dir() -> Path:
+    base = os.environ.get("ZIRO_DATA")
+    if base:
+        return Path(base)
+    base_xdg = os.environ.get("XDG_DATA_HOME")
+    if base_xdg:
+        return Path(base_xdg) / "ziro"
+    return Path.home() / ".local" / "share" / "ziro"
+
+
+def _write_completion(data_dir: Path) -> Path:
+    """Install zsh completion script to ~/.local/share/ziro/completions/_ziro."""
+    comp_dir = data_dir / "completions"
+    comp_dir.mkdir(parents=True, exist_ok=True)
+    comp_file = comp_dir / "_ziro"
+    from core.completion_cli import generate_zsh_completion
+    content = generate_zsh_completion()
+    comp_file.write_text(content, encoding="utf-8")
+    return comp_file
+
+
 def _venv_dir() -> Path:
     data_home = Path(os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share"))
     return data_home / "ziro" / "venv"
@@ -155,9 +176,10 @@ def cmd_install(argv: list[str]) -> int:
     print(f"mode: {choice}")
 
     if dry_run:
-        print("[dry-run] would write defaults.toml, tools.toml, tags/builtin.toml")
+        print("[dry-run] would write defaults.toml, tools.toml, tags/builtin.toml, completions/_ziro")
         return 0
 
+    data = _data_dir()
     from core.tty import is_tty
     if is_tty():
         try:
@@ -171,11 +193,13 @@ def cmd_install(argv: list[str]) -> int:
                 _write_defaults(cfg)
                 _write_tools(cfg)
                 _write_tags(cfg)
+                comp_file = _write_completion(data)
                 _ensure_venv()
         except Exception:
             _write_defaults(cfg)
             _write_tools(cfg)
             _write_tags(cfg)
+            comp_file = _write_completion(data)
             _ensure_venv()
 
         from core.rich_helpers import render_table
@@ -183,19 +207,23 @@ def cmd_install(argv: list[str]) -> int:
             ["defaults.toml", f"{cfg}/defaults.toml", "Written"],
             ["tools.toml", f"{cfg}/tools.toml", "Written"],
             ["builtin.toml", f"{cfg}/tags/builtin.toml", "Written"],
+            ["_ziro", f"{comp_file}", "Written"],
         ]
         if not render_table("Installed Configurations", ["File", "Path", "Status"], table_rows):
             print(f"✅ wrote: {cfg}/defaults.toml")
             print(f"✅ wrote: {cfg}/tools.toml")
             print(f"✅ wrote: {cfg}/tags/builtin.toml")
+            print(f"✅ wrote: {comp_file}")
     else:
         _write_defaults(cfg)
         _write_tools(cfg)
         _write_tags(cfg)
+        comp_file = _write_completion(data)
         _ensure_venv()
         print(f"✅ wrote: {cfg}/defaults.toml")
         print(f"✅ wrote: {cfg}/tools.toml")
         print(f"✅ wrote: {cfg}/tags/builtin.toml")
+        print(f"✅ wrote: {comp_file}")
 
     ok, msg = _verify_starship()
     if not ok:

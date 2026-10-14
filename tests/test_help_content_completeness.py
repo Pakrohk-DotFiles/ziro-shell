@@ -20,6 +20,7 @@ TOP_LEVEL_COMMANDS = [
     "config",
     "doctor",
     "bench",
+    "completion",
     "help",
 ]
 

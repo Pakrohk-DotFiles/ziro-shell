@@ -147,6 +147,28 @@ class TestHelpCli(unittest.TestCase):
         rc_none = handle_help_if_requested(["--default"], "install")
         self.assertIsNone(rc_none)
 
+    def test_colorization_respects_flag_and_tty(self) -> None:
+        entry = get_entry("install")
+        assert entry is not None
+
+        plain = render_entry(entry, colorize=False)
+        self.assertNotIn("\033[", plain)
+        self.assertIn("ziro install", plain)
+
+        colored = render_entry(entry, colorize=True)
+        self.assertIn("\033[", colored)
+        self.assertIn("ziro install", colored)
+
+        plain_all = list_all(colorize=False)
+        self.assertNotIn("\033[", plain_all)
+
+        colored_all = list_all(colorize=True)
+        self.assertIn("\033[", colored_all)
+
+    def test_i18n_stub_returns_default(self) -> None:
+        from core.help_cli import t
+        self.assertEqual(t("some.key", "Default English Text"), "Default English Text")
+
 
 if __name__ == "__main__":
     unittest.main()

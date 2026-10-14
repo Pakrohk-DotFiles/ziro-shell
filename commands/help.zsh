@@ -36,6 +36,7 @@ Commands:
   config      Inspect and manage configuration files
   doctor      Diagnose installation health and configuration
   bench       Benchmark startup and command performance
+  completion  Generate shell completion script
   help        Show help information for ziro commands
 
 Run 'ziro help <command>' or 'ziro <command> --help' for details on a command.

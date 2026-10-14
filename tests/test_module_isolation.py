@@ -205,6 +205,7 @@ source "{lib_dir}/log.zsh"
             "suggest_cli",
             "doctor_cli",
             "bench_cli",
+            "completion_cli",
         }
 
         # Check that top-level module statements do not import CLI submodules

@@ -15,7 +15,7 @@ def main(argv: list[str] | None = None) -> int:
     args = list(argv or sys.argv[1:])
     if not args:
         print("usage: python3 -m core <subcommand> [args...]", file=sys.stderr)
-        print("subcommands: theme, prompt, install, plugin, tag, config, suggest, doctor, bench", file=sys.stderr)
+        print("subcommands: theme, prompt, install, plugin, tag, config, suggest, doctor, bench, completion", file=sys.stderr)
         return 2
 
     sub = args[0]
@@ -30,6 +30,9 @@ def main(argv: list[str] | None = None) -> int:
     if sub == "help":
         from core import help_cli
         return help_cli.cmd_help(rest)
+    if sub == "completion":
+        from core import completion_cli
+        return completion_cli.main(rest)
     if sub == "theme":
         from core import theme_cli
         return theme_cli.main(rest)

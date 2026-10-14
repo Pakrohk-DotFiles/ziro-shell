@@ -18,11 +18,21 @@ _ziro_cmd_install() {
     return 1
   fi
 
+  local ret=0
   if [[ -t 0 && -r /dev/tty ]]; then
     (cd "$ZIRO_HOME" && ZIRO_HOME="$ZIRO_HOME" ZIRO_CONFIG="$ZIRO_CONFIG" \
       "$py" -m core install "$@" < /dev/tty)
+    ret=$?
   else
     (cd "$ZIRO_HOME" && ZIRO_HOME="$ZIRO_HOME" ZIRO_CONFIG="$ZIRO_CONFIG" \
       "$py" -m core install "$@")
+    ret=$?
   fi
+
+  local comp_dir="${XDG_DATA_HOME:-$HOME/.local/share}/ziro/completions"
+  if [[ -d "$comp_dir" && ! ${fpath[(Ie)$comp_dir]} ]]; then
+    fpath=("$comp_dir" $fpath)
+  fi
+
+  return $ret
 }

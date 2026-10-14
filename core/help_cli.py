@@ -463,6 +463,19 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         ],
         related=["doctor"],
     ),
+    "completion": HelpEntry(
+        name="completion",
+        summary="Generate shell completion script",
+        usage="ziro completion [zsh]",
+        flags=[
+            ("-h, --help", "Show help information"),
+        ],
+        examples=[
+            "ziro completion",
+            "ziro completion zsh",
+        ],
+        related=["install", "help"],
+    ),
     "help": HelpEntry(
         name="help",
         summary="Show help information for ziro commands",
@@ -523,57 +536,86 @@ def suggest_similar(name: str) -> str | None:
     return matches[0] if matches else None
 
 
-def render_entry(entry: HelpEntry, level: str = "top") -> str:
+def t(key: str, default: str) -> str:
+    """i18n translation stub. Defaults to English text, ready for future localization."""
+    return default
+
+
+def _use_color(stream: Any = None) -> bool:
+    try:
+        from core.tty import is_tty
+        return is_tty(stream or sys.stdout)
+    except Exception:
+        return False
+
+
+_BOLD = "\033[1m"
+_CYAN = "\033[36m"
+_BOLD_CYAN = "\033[1;36m"
+_RESET = "\033[0m"
+
+
+def _c(text: str, code: str, enabled: bool) -> str:
+    return f"{code}{text}{_RESET}" if enabled else text
+
+
+def render_entry(entry: HelpEntry, level: str = "top", colorize: bool | None = None) -> str:
     """Render a HelpEntry into structured, aligned terminal text."""
+    if colorize is None:
+        colorize = _use_color()
+
     lines: list[str] = []
-    lines.append(f"ziro {entry.name} — {entry.summary}")
+    lines.append(f"{_c('ziro ' + entry.name, _BOLD, colorize)} — {entry.summary}")
     lines.append("")
-    lines.append("Usage:")
+    lines.append(_c(t("help.usage", "Usage:"), _BOLD_CYAN, colorize))
     lines.append(f"  {entry.usage}")
 
     if entry.subcommands:
         lines.append("")
-        lines.append("Subcommands:")
+        lines.append(_c(t("help.subcommands", "Subcommands:"), _BOLD_CYAN, colorize))
         max_sub = max(len(s) for s in entry.subcommands)
         pad = max(max_sub + 2, 10)
         for sub, desc in entry.subcommands.items():
-            lines.append(f"  {sub.ljust(pad)} {desc}")
+            lines.append(f"  {_c(sub.ljust(pad), _CYAN, colorize)} {desc}")
 
     if entry.flags:
         lines.append("")
-        lines.append("Flags:")
+        lines.append(_c(t("help.flags", "Flags:"), _BOLD_CYAN, colorize))
         max_flag = max(len(f[0]) for f in entry.flags)
         pad = max(max_flag + 2, 12)
         for flag, desc in entry.flags:
-            lines.append(f"  {flag.ljust(pad)} {desc}")
+            lines.append(f"  {_c(flag.ljust(pad), _CYAN, colorize)} {desc}")
 
     if entry.examples:
         lines.append("")
-        lines.append("Examples:")
+        lines.append(_c(t("help.examples", "Examples:"), _BOLD_CYAN, colorize))
         for ex in entry.examples:
             lines.append(f"  {ex}")
 
     if entry.related:
         lines.append("")
-        lines.append(f"Related: {', '.join(entry.related)}")
+        lines.append(f"{_c(t('help.related', 'Related:'), _BOLD_CYAN, colorize)} {', '.join(entry.related)}")
 
     return "\n".join(lines)
 
 
-def list_all() -> str:
+def list_all(colorize: bool | None = None) -> str:
     """Render top-level command summary."""
+    if colorize is None:
+        colorize = _use_color()
+
     lines = [
-        "ziro — fast, layered Zsh runtime customization",
+        _c(t("help.title", "ziro — fast, layered Zsh runtime customization"), _BOLD, colorize),
         "",
-        "Usage:",
+        _c(t("help.usage", "Usage:"), _BOLD_CYAN, colorize),
         "  ziro <command> [args...]",
         "  ziro [flags]",
         "",
-        "Flags:",
+        _c(t("help.flags", "Flags:"), _BOLD_CYAN, colorize),
         "  -h, --help     Show help information",
         "  -v, --version  Show version",
         "",
-        "Commands:",
+        _c(t("help.commands", "Commands:"), _BOLD_CYAN, colorize),
     ]
     top_entries = [
         ("install", "Install ziro with defaults or custom profile"),
@@ -585,10 +627,11 @@ def list_all() -> str:
         ("config", "Inspect and manage configuration files"),
         ("doctor", "Diagnose installation health and configuration"),
         ("bench", "Benchmark startup and command performance"),
+        ("completion", "Generate shell completion script"),
         ("help", "Show help information for ziro commands"),
     ]
     for cmd, summary in top_entries:
-        lines.append(f"  {cmd.ljust(11)} {summary}")
+        lines.append(f"  {_c(cmd.ljust(11), _CYAN, colorize)} {summary}")
 
     lines.append("")
     lines.append("Run 'ziro help <command>' or 'ziro <command> --help' for details on a command.")
