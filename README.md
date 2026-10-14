@@ -8,7 +8,7 @@
 **ziro-shell** manages your Zsh config as a layered framework instead of a
 monolithic `.zshrc`. Each layer has one responsibility and a strict performance
 budget. The hot path — sourced on every shell start — targets **< 5ms**
-(Spec 004 R1).
+(Layer 0 bootstrap target).
 
 ## Architecture
 
@@ -44,7 +44,7 @@ Ziro does not write its own plugin manager. It builds on two proven projects:
 - **ziro-defer** — a fork of upstream `zsh-defer` with additional features.
   Ziro's canonical deferral engine.
 
-The deferral fallback chain in `integration.zsh` (Spec 004 R2):
+The deferral fallback chain in `integration.zsh` (ADR-002 / ADR-004):
 
 ```
 ziro-defer.plugin.zsh → zsh-defer.plugin.zsh → zsh-defer command → eager stub
@@ -56,7 +56,7 @@ turbo) and the decision record.
 
 ## Getting started
 
-Requirements: **Zsh ≥ 5.2**, **git**. Python is optional — only needed for the
+Requirements: **Zsh ≥ 5.8**, **git**. Python is optional — only needed for the
 plugin analyzer and Rich progress bars (ADR-003).
 
 ```sh
