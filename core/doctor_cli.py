@@ -76,6 +76,10 @@ def _check_generated() -> tuple[bool, str]:
 
 
 def cmd_doctor(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "doctor")
+    if ret is not None:
+        return ret
     verbose = "--verbose" in argv or "-v" in argv
     print("ziro doctor")
     print("=" * 50)
@@ -97,12 +101,15 @@ def cmd_doctor(argv: list[str]) -> int:
     for name, ok, msg in _check_config_files():
         checks.append((f"config/{name}", ok, msg))
 
-    failed = 0
-    for name, ok, msg in checks:
-        icon = "✅" if ok else "❌"
-        print(f" {icon} {name:25s} {msg if verbose else ''}")
-        if not ok:
-            failed += 1
+    from core.rich_helpers import render_tree
+
+    failed = sum(1 for _, ok, _ in checks if not ok)
+    tree_items = [(name, ok, msg if verbose else "") for name, ok, msg in checks]
+
+    if not render_tree("ziro doctor", tree_items):
+        for name, ok, msg in checks:
+            icon = "✅" if ok else "❌"
+            print(f" {icon} {name:25s} {msg if verbose else ''}")
 
     print()
     if failed == 0:

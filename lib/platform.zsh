@@ -7,7 +7,7 @@
 # Detects: linux | macos | wsl | termux | unknown
 # Idempotent: safe to source multiple times.
 
-typeset -g _ZIRO_PLATFORM_CACHE=""
+(( $+_ZIRO_PLATFORM_CACHE )) || typeset -g _ZIRO_PLATFORM_CACHE=""
 
 ziro_platform() {
   # Return cached value if available

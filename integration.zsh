@@ -20,6 +20,12 @@
 : ${ZIRO_HOME:="$HOME/.ziro"}  # legacy compat (repo root)
 export ZIRO_DATA ZIRO_CONFIG ZIRO_CACHE ZIRO_HOME
 
+# Add completions directory to fpath if present
+local _ziro_comp="${ZIRO_DATA:-$XDG_DATA_HOME/ziro}/completions"
+if [[ -d "$_ziro_comp" && ! ${fpath[(Ie)$_ziro_comp]} ]]; then
+  fpath=("$_ziro_comp" $fpath)
+fi
+
 # Source znap (permanent backend, ADR-002)
 if [[ -r "$ZIRO_DATA/vendor/znap/znap.zsh" ]]; then
   source "$ZIRO_DATA/vendor/znap/znap.zsh"

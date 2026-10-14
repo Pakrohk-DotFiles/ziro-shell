@@ -5,28 +5,41 @@
 # AUTO-GENERATED: no
 
 _ziro_cmd_help() {
-  local notice="${1:-}"
+  emulate -L zsh
+  : ${ZIRO_HOME:="$HOME/.ziro"}
+  : ${ZIRO_CONFIG:="${XDG_CONFIG_HOME:-$HOME/.config}/ziro"}
 
-  (( ${+notice} )) && [[ -n "$notice" ]] && print -u2 "ziro: $notice"
+  if [[ $# -gt 0 && "$1" != "--help" && "$1" != "-h" ]] && command -v python3 &>/dev/null; then
+    (cd "$ZIRO_HOME" && ZIRO_HOME="$ZIRO_HOME" ZIRO_CONFIG="$ZIRO_CONFIG" \
+      python3 -m core help "$@")
+    return $?
+  fi
 
-  << 'HELP'
+  cat << 'HELP'
 ziro — fast, layered Zsh runtime customization
 
 Usage:
   ziro <command> [args...]
+  ziro [flags]
+
+Flags:
+  -h, --help     Show help information
+  -v, --version  Show version
 
 Commands:
-  install    Install ziro with defaults or custom profile
-  plugin     Manage plugins (add, remove, list, show)
-  tag        Manage plugin tags (add, remove, list)
-  suggest    Manage auto-suggest component
-  theme      Manage themes
-  prompt     Manage prompt
-  config     Manage configuration
-  doctor     Diagnose installation
-  bench      Benchmark performance
-  help       Show this help
+  install     Install ziro with defaults or custom profile
+  plugin      Manage plugins (add, remove, list, show)
+  tag         Manage plugin tags (list, show, add, remove, reset, define)
+  suggest     Manage auto-suggest component
+  theme       Manage shell themes and appearance
+  prompt      Manage shell prompt engine
+  config      Inspect and manage configuration files
+  doctor      Diagnose installation health and configuration
+  bench       Benchmark startup and command performance
+  completion  Generate shell completion script
+  help        Show help information for ziro commands
 
+Run 'ziro help <command>' or 'ziro <command> --help' for details on a command.
 For more: https://github.com/Pakrohk-DotFiles/ziro-shell
 HELP
 }

@@ -55,6 +55,10 @@ def _existing_configs() -> list:
 
 
 def cmd_list(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "plugin", subcommand="list")
+    if ret is not None:
+        return ret
     dirs = _list_plugin_dirs(_ziro_home())
     if not dirs:
         print("(no plugins installed)")
@@ -65,6 +69,10 @@ def cmd_list(argv: list[str]) -> int:
 
 
 def cmd_show(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "plugin", subcommand="show")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: plugin show <name>", file=sys.stderr)
         return 2
@@ -84,6 +92,10 @@ def cmd_show(argv: list[str]) -> int:
 
 
 def cmd_add(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "plugin", subcommand="add")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: plugin add <source> [name] [@tags...]", file=sys.stderr)
         return 2
@@ -102,15 +114,45 @@ def cmd_add(argv: list[str]) -> int:
         source = f"https://github.com/{source}.git"
 
     try:
-        result = add_plugin(
-            source,
-            name=name,
-            tags=tags,
-            ziro_home=_ziro_home(),
-            config_dir=_config_dir(),
-            all_configs=_existing_configs(),
-            dry_run=dry_run,
-        )
+        from core.tty import is_tty
+        if is_tty():
+            try:
+                from rich.progress import Progress, SpinnerColumn, TextColumn
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    transient=True,
+                ) as progress:
+                    progress.add_task(description=f"Adding plugin {source}...", total=None)
+                    result = add_plugin(
+                        source,
+                        name=name,
+                        tags=tags,
+                        ziro_home=_ziro_home(),
+                        config_dir=_config_dir(),
+                        all_configs=_existing_configs(),
+                        dry_run=dry_run,
+                    )
+            except Exception:
+                result = add_plugin(
+                    source,
+                    name=name,
+                    tags=tags,
+                    ziro_home=_ziro_home(),
+                    config_dir=_config_dir(),
+                    all_configs=_existing_configs(),
+                    dry_run=dry_run,
+                )
+        else:
+            result = add_plugin(
+                source,
+                name=name,
+                tags=tags,
+                ziro_home=_ziro_home(),
+                config_dir=_config_dir(),
+                all_configs=_existing_configs(),
+                dry_run=dry_run,
+            )
     except RuntimeError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
@@ -127,6 +169,10 @@ def cmd_add(argv: list[str]) -> int:
 
 
 def cmd_remove(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "plugin", subcommand="remove")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: plugin remove <name>", file=sys.stderr)
         return 2
@@ -152,6 +198,10 @@ def cmd_remove(argv: list[str]) -> int:
 
 
 def main(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "plugin")
+    if ret is not None:
+        return ret
     if not argv:
         print("usage: plugin <add|remove|list|show>", file=sys.stderr)
         return 2

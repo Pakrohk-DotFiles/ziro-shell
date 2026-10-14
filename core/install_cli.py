@@ -70,7 +70,82 @@ def _write_tools(cfg: Path) -> None:
     tools.write_text(content)
 
 
+def _write_tags(cfg: Path) -> None:
+    """Ensure ~/.config/ziro/tags/builtin.toml exists."""
+    from core.tags import ensure_builtin_tags_file
+    ensure_builtin_tags_file(cfg)
+
+
+def _data_dir() -> Path:
+    base = os.environ.get("ZIRO_DATA")
+    if base:
+        return Path(base)
+    base_xdg = os.environ.get("XDG_DATA_HOME")
+    if base_xdg:
+        return Path(base_xdg) / "ziro"
+    return Path.home() / ".local" / "share" / "ziro"
+
+
+def _write_completion(data_dir: Path) -> Path:
+    """Install zsh completion script to ~/.local/share/ziro/completions/_ziro."""
+    comp_dir = data_dir / "completions"
+    comp_dir.mkdir(parents=True, exist_ok=True)
+    comp_file = comp_dir / "_ziro"
+    from core.completion_cli import generate_zsh_completion
+    content = generate_zsh_completion()
+    comp_file.write_text(content, encoding="utf-8")
+    return comp_file
+
+
+def _venv_dir() -> Path:
+    data_home = Path(os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share"))
+    return data_home / "ziro" / "venv"
+
+
+def _ensure_venv() -> Path | None:
+    """Bootstrap ~/.local/share/ziro/venv with rich installed (idempotent, non-fatal)."""
+    if os.environ.get("ZIRO_SKIP_VENV_BOOTSTRAP") == "1":
+        return None
+    venv_path = _venv_dir()
+    py_bin = venv_path / "bin" / "python3"
+    pip_bin = venv_path / "bin" / "pip"
+
+    if py_bin.is_file():
+        return venv_path
+
+    try:
+        venv_path.parent.mkdir(parents=True, exist_ok=True)
+        r = subprocess.run(
+            [sys.executable, "-m", "venv", str(venv_path)],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if r.returncode != 0:
+            print(f"⚠️  warning: failed to create venv at {venv_path}: {r.stderr.strip()}", file=sys.stderr)
+            return None
+
+        if pip_bin.is_file():
+            r_pip = subprocess.run(
+                [str(pip_bin), "install", "--quiet", "rich"],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            if r_pip.returncode != 0:
+                print(f"⚠️  warning: pip install rich failed: {r_pip.stderr.strip()}", file=sys.stderr)
+        return venv_path
+    except Exception as e:
+        print(f"⚠️  warning: venv bootstrap error: {e}", file=sys.stderr)
+        return None
+
+
 def cmd_install(argv: list[str]) -> int:
+    from core.help_cli import handle_help_if_requested
+    ret = handle_help_if_requested(argv, "install")
+    if ret is not None:
+        return ret
+
     dry_run = "--dry-run" in argv
     default_mode = "--default" in argv
     custom_mode = "--custom" in argv
@@ -101,13 +176,54 @@ def cmd_install(argv: list[str]) -> int:
     print(f"mode: {choice}")
 
     if dry_run:
-        print("[dry-run] would write defaults.toml, tools.toml")
+        print("[dry-run] would write defaults.toml, tools.toml, tags/builtin.toml, completions/_ziro")
         return 0
 
-    _write_defaults(cfg)
-    _write_tools(cfg)
-    print(f"✅ wrote: {cfg}/defaults.toml")
-    print(f"✅ wrote: {cfg}/tools.toml")
+    data = _data_dir()
+    from core.tty import is_tty
+    if is_tty():
+        try:
+            from rich.progress import Progress, SpinnerColumn, TextColumn
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                transient=True,
+            ) as progress:
+                progress.add_task(description="Writing configuration files...", total=None)
+                _write_defaults(cfg)
+                _write_tools(cfg)
+                _write_tags(cfg)
+                comp_file = _write_completion(data)
+                _ensure_venv()
+        except Exception:
+            _write_defaults(cfg)
+            _write_tools(cfg)
+            _write_tags(cfg)
+            comp_file = _write_completion(data)
+            _ensure_venv()
+
+        from core.rich_helpers import render_table
+        table_rows = [
+            ["defaults.toml", f"{cfg}/defaults.toml", "Written"],
+            ["tools.toml", f"{cfg}/tools.toml", "Written"],
+            ["builtin.toml", f"{cfg}/tags/builtin.toml", "Written"],
+            ["_ziro", f"{comp_file}", "Written"],
+        ]
+        if not render_table("Installed Configurations", ["File", "Path", "Status"], table_rows):
+            print(f"✅ wrote: {cfg}/defaults.toml")
+            print(f"✅ wrote: {cfg}/tools.toml")
+            print(f"✅ wrote: {cfg}/tags/builtin.toml")
+            print(f"✅ wrote: {comp_file}")
+    else:
+        _write_defaults(cfg)
+        _write_tools(cfg)
+        _write_tags(cfg)
+        comp_file = _write_completion(data)
+        _ensure_venv()
+        print(f"✅ wrote: {cfg}/defaults.toml")
+        print(f"✅ wrote: {cfg}/tools.toml")
+        print(f"✅ wrote: {cfg}/tags/builtin.toml")
+        print(f"✅ wrote: {comp_file}")
 
     ok, msg = _verify_starship()
     if not ok:
