@@ -42,8 +42,10 @@ def cmd_list(argv: list[str]) -> int:
     if not themes:
         print(f"(no themes for component: {component})")
         return 0
-    for name in themes:
-        print(name)
+    from core.rich_helpers import render_columns
+    if not render_columns(themes):
+        for name in themes:
+            print(name)
     return 0
 
 

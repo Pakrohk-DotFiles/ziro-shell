@@ -114,15 +114,45 @@ def cmd_add(argv: list[str]) -> int:
         source = f"https://github.com/{source}.git"
 
     try:
-        result = add_plugin(
-            source,
-            name=name,
-            tags=tags,
-            ziro_home=_ziro_home(),
-            config_dir=_config_dir(),
-            all_configs=_existing_configs(),
-            dry_run=dry_run,
-        )
+        from core.tty import is_tty
+        if is_tty():
+            try:
+                from rich.progress import Progress, SpinnerColumn, TextColumn
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    transient=True,
+                ) as progress:
+                    progress.add_task(description=f"Adding plugin {source}...", total=None)
+                    result = add_plugin(
+                        source,
+                        name=name,
+                        tags=tags,
+                        ziro_home=_ziro_home(),
+                        config_dir=_config_dir(),
+                        all_configs=_existing_configs(),
+                        dry_run=dry_run,
+                    )
+            except Exception:
+                result = add_plugin(
+                    source,
+                    name=name,
+                    tags=tags,
+                    ziro_home=_ziro_home(),
+                    config_dir=_config_dir(),
+                    all_configs=_existing_configs(),
+                    dry_run=dry_run,
+                )
+        else:
+            result = add_plugin(
+                source,
+                name=name,
+                tags=tags,
+                ziro_home=_ziro_home(),
+                config_dir=_config_dir(),
+                all_configs=_existing_configs(),
+                dry_run=dry_run,
+            )
     except RuntimeError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1

@@ -68,21 +68,37 @@ def cmd_bench(argv: list[str]) -> int:
     mn = _min_of(times)
     med = _median_of(times)
 
-    print(" zsh + integration.zsh")
-    print(f" min: {mn:.2f} ms")
-    print(f" median: {med:.2f} ms")
-    print(f" max: {max(times):.2f} ms" if times else " max: n/a")
-    print()
-
-    # 2. Budget check
+    from core.rich_helpers import render_table
     budget_ms = 5.0
-    if mn < budget_ms:
-        print(f" ✅ ziro contribution < {budget_ms} ms (min = {mn:.2f} ms)")
-        return 0
+    passed = mn < budget_ms
+    status_str = f"✅ < {budget_ms} ms" if passed else f"⚠️ > {budget_ms} ms"
+
+    table_rows = [
+        ["Min", f"{mn:.2f} ms", status_str],
+        ["Median", f"{med:.2f} ms", "—"],
+        ["Max", f"{max(times):.2f} ms" if times else "n/a", "—"],
+    ]
+
+    if not render_table(f"Startup Benchmark ({iters} iters)", ["Metric", "Value", "Budget Status"], table_rows):
+        print(" zsh + integration.zsh")
+        print(f" min: {mn:.2f} ms")
+        print(f" median: {med:.2f} ms")
+        print(f" max: {max(times):.2f} ms" if times else " max: n/a")
+        print()
+        if passed:
+            print(f" ✅ ziro contribution < {budget_ms} ms (min = {mn:.2f} ms)")
+        else:
+            print(f" ⚠️ ziro contribution exceeds budget: {mn:.2f} ms > {budget_ms} ms")
+            print(" (note: this measures total zsh startup, not just ziro)")
     else:
-        print(f" ⚠️ ziro contribution exceeds budget: {mn:.2f} ms > {budget_ms} ms")
-        print(" (note: this measures total zsh startup, not just ziro)")
-        return 0  # informational, not failure
+        print()
+        if passed:
+            print(f" ✅ ziro contribution < {budget_ms} ms (min = {mn:.2f} ms)")
+        else:
+            print(f" ⚠️ ziro contribution exceeds budget: {mn:.2f} ms > {budget_ms} ms")
+            print(" (note: this measures total zsh startup, not just ziro)")
+
+    return 0
 
 
 def main(argv: list[str]) -> int:
