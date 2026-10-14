@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ziro launcher - single source of truth is the Python engine (ziro/).
+# Ziro launcher - single source of truth is the Python engine (core/).
 # Works when: run from file, piped via curl|bash, or from a git checkout.
 set -euo pipefail
 
@@ -28,14 +28,14 @@ if [ -n "${BASH_SOURCE[0]:-}" ]; then
 fi
 
 # 2. If empty or engine not found, try git rev-parse (user is inside a checkout).
-if [ -z "$SCRIPT_DIR" ] || [ ! -d "$SCRIPT_DIR/ziro" ]; then
+if [ -z "$SCRIPT_DIR" ] || [ ! -d "$SCRIPT_DIR/core" ]; then
     if git rev-parse --show-toplevel >/dev/null 2>&1; then
         SCRIPT_DIR="$(git rev-parse --show-toplevel)"
     fi
 fi
 
 # 3. Still not found? We were piped outside a checkout. Clone to temp dir.
-if [ -z "$SCRIPT_DIR" ] || [ ! -d "$SCRIPT_DIR/ziro" ]; then
+if [ -z "$SCRIPT_DIR" ] || [ ! -d "$SCRIPT_DIR/core" ]; then
     TMPDIR_INSTALL="$(mktemp -d)"
     echo "[*] Cloning Ziro to $TMPDIR_INSTALL ..."
     if ! git clone --depth 1 "$REPO_URL" "$TMPDIR_INSTALL" 2>/dev/null; then
@@ -47,13 +47,12 @@ if [ -z "$SCRIPT_DIR" ] || [ ! -d "$SCRIPT_DIR/ziro" ]; then
 fi
 
 # --- Default to the "install" subcommand for bare flags (e.g. --server) ---
-# The engine also defaults argv-less calls to install (ziro/cli.py), so we only
-# prepend when the first argument is NOT already a subcommand. This keeps
-# `bash install.sh install --force` and `... theme apply x` working (16ecaa0
-# hardcoded the prepend, which double-added `install` and broke explicit calls).
+# The engine also defaults argv-less calls to install (core/install_cli.py), so we only
+# prepend when the first argument is NOT already a subcommand.
 case "${1:-}" in
     ""|install|update|doctor|theme|--version|-h|--help) ;;
     *) set -- install "$@" ;;
 esac
 
-exec "$PYTHON" "$SCRIPT_DIR/ziro/" "$@"
+cd "$SCRIPT_DIR"
+exec "$PYTHON" -m core "$@"
