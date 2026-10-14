@@ -15,7 +15,7 @@ def main(argv: list[str] | None = None) -> int:
     args = list(argv or sys.argv[1:])
     if not args:
         print("usage: python3 -m core <subcommand> [args...]", file=sys.stderr)
-        print("subcommands: theme, prompt, install, plugin, tag, config, suggest, doctor, bench, completion", file=sys.stderr)
+        print("subcommands: theme, prompt, install, plugin, tag, config, suggest, doctor, bench, completion, update", file=sys.stderr)
         return 2
 
     sub = args[0]
@@ -60,6 +60,9 @@ def main(argv: list[str] | None = None) -> int:
     if sub == "bench":
         from core import bench_cli
         return bench_cli.main(rest)
+    if sub == "update":
+        from core import update_cli
+        return update_cli.main(rest)
 
     print(f"unknown subcommand: {sub}", file=sys.stderr)
     return 2
