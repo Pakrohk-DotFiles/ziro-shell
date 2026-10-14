@@ -89,6 +89,7 @@ Official architecture decisions are recorded in `docs/wiki/sources/` as ADRs:
 | [ADR-005](docs/wiki/sources/adr-005-ziro-defer-directory-placement.md) | ziro-defer directory placement |
 | [ADR-006](docs/wiki/sources/adr-006-ghost-architecture.md) | Ghost architecture decisions |
 | [ADR-007](docs/wiki/sources/adr-007-versioning-policy.md) | Versioning policy & release tier discipline |
+| [ADR-008](docs/wiki/sources/adr-008-roadmap-phases.md) | Roadmap phases 7-9 & per-plugin repositories |
 
 ## License
 

@@ -6,6 +6,12 @@ This project adheres to a 3-tier versioning discipline (ADR-007, Constitution Pr
 - **Minor Tier (`X.Y.X`)**: Large new features and full multi-layer subsystem orchestrations.
 - **Major Tier (`Y.X.X`)**: Fundamental architecture rewrites or paradigm shifts breaking Core Principles.
 
+## Upcoming
+
+- **v1.0.2** — Project Cleanup (in progress)
+- **v1.1.2** — Ziro Ghost (standalone autosuggest plugin)
+- **v1.1.5** — pf (cross-shell package manager) + standard helpers
+
 ## [1.0.0] — Foundation Release (2026-10-13)
 
 ### Added
