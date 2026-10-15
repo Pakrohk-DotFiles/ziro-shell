@@ -196,7 +196,7 @@ def generate_plugins_gen(
                 plugin="starship",
                 strategy=Strategy.EAGER,
                 eval_cache=True,
-                raw="znap eval starship 'starship init zsh --print-full-init'",
+                raw="(( $+commands[starship] )) && znap eval starship 'starship init zsh --print-full-init'",
             )
         )
 
@@ -219,7 +219,7 @@ def generate_plugins_gen(
                 plugin="fzf",
                 strategy=Strategy.EAGER,
                 eval_cache=True,
-                raw="znap eval fzf 'fzf --zsh'",
+                raw="(( $+commands[fzf] )) && znap eval fzf 'fzf --zsh'",
             )
         )
 
@@ -269,7 +269,7 @@ def generate_plugins_gen(
                 plugin="zcolors",
                 strategy=Strategy.EAGER,
                 eval_cache=True,
-                raw='znap eval zcolors "zcolors ${(q)LS_COLORS}"',
+                raw='(( $+commands[zcolors] )) && znap eval zcolors "zcolors ${(q)LS_COLORS}"',
             )
         )
 
@@ -281,7 +281,7 @@ def generate_plugins_gen(
                 plugin="zoxide",
                 strategy=Strategy.EAGER,
                 eval_cache=True,
-                raw="znap eval zoxide 'zoxide init zsh'",
+                raw="(( $+commands[zoxide] )) && znap eval zoxide 'zoxide init zsh'",
             )
         )
 

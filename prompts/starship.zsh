@@ -25,9 +25,11 @@ typeset -g ZIRO_PROMPT_THEME_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/starship"
 # Load via znap eval (cached output)
 (( $+functions[prompt_starship_precmd] )) && return 0
 
-if (( $+functions[znap] )); then
-	znap eval starship 'starship init zsh --print-full-init'
-else
-	# Fallback: eager source if znap not yet loaded
-	eval "$(starship init zsh --print-full-init 2>/dev/null)"
+if (( $+commands[starship] )); then
+	if (( $+functions[znap] )); then
+		znap eval starship 'starship init zsh --print-full-init'
+	else
+		# Fallback: eager source if znap not yet loaded
+		eval "$(starship init zsh --print-full-init 2>/dev/null)"
+	fi
 fi
