@@ -107,11 +107,11 @@ export ZIRO_HOME="{REPO_ROOT}"
 export ZIRO_CONFIG="{self.config_dir}"
 export ZIRO_DATA="{self.data_dir}"
 source "{INTEGRATION_ZSH}"
-echo "PROMPT=$PROMPT"
+echo "ZIRO_PROMPT_NAME=$ZIRO_PROMPT_NAME"
 """
         run = subprocess.run(["zsh", "-c", script], capture_output=True, text=True)
         self.assertEqual(run.returncode, 0, f"zsh failed: {run.stderr}")
-        self.assertIn("starship", run.stdout)
+        self.assertIn("ZIRO_PROMPT_NAME=starship", run.stdout)
 
 
 if __name__ == "__main__":
