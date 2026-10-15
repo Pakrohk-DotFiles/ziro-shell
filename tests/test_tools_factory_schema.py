@@ -51,6 +51,7 @@ class TestToolsFactorySchema(unittest.TestCase):
             "colors",
             "navigation",
             "fuzzy_finder",
+            "git",
             "core",
             "infra",
         }

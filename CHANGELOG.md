@@ -11,7 +11,24 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 - **v1.1.2** — Ziro Ghost (standalone autosuggest plugin)
 - **v1.1.5** — pf (cross-shell package manager) + standard helpers
 
-## [v1.1.0] — Declarative Architecture (Unreleased)
+## [v1.1.1] — Plugin List Update
+
+### Added
+- Core helpers: `mkcd`, `take`, `extract`, `..` navigation, `clipcopy`/`clippaste` (`lib/helpers.zsh`)
+- Auto-detect aliases: `eza`, `bat`, `rg`, `fd`, `delta` (`lib/aliases.zsh`, active only when binary present)
+- New default plugins: `zsh-you-should-use`, `fzf-tab`
+- New optional plugin: `forgit` (enable via config)
+- New `[git]` category in `defaults.toml` with `none` option
+
+### Changed
+- `wd` moved to alternatives (`zoxide` is the default navigation)
+- Load order updated to accommodate `fzf-tab` after `fzf`
+
+### No Breaking Changes
+- Existing users keep their current plugin set
+- New defaults apply only on fresh install or via `ziro config reset`
+
+## [v1.1.0] — Declarative Architecture (2026-10-16)
 
 ### Changed (Architecture)
 - Tools registry migrated to declarative `core/tools_factory.toml` (single source of truth)

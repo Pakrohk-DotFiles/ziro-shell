@@ -79,6 +79,9 @@ def _write_defaults(cfg: Path) -> None:
     content += "[fuzzy_finder]\n"
     content += 'default = "fzf"\n'
     content += "\n"
+    content += "[git]\n"
+    content += 'default = "ohmyzsh-git"\n'
+    content += "\n"
     content += "[ui]\n"
     content += "rich = true\n"
     defaults.write_text(content)

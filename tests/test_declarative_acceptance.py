@@ -119,7 +119,7 @@ default = "skim"
         content = gen_path.read_text(encoding="utf-8")
 
         self.assertIn("(( $+commands[sk] )) && znap eval skim 'sk --shell'", content)
-        self.assertNotIn("fzf", content)
+        self.assertNotIn("znap eval fzf", content)
 
     def test_alternatives_only_omitted_by_default(self) -> None:
         """Alternative tools are omitted unless selected."""
