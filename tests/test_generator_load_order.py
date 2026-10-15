@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path.home() / ".ziro"))
 
-from core.generator import generate, EmitOptions, LOAD_ORDER
+from core.generator import generate, EmitOptions
 from core.models import Strategy
 from core.resolver import ResolvedConfig
 

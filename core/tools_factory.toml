@@ -1,0 +1,307 @@
+# ==============================================================================
+# ziro-shell — Factory Tools Registry (core/tools_factory.toml)
+# Layer: 0 (Config / Architecture) · Spec: 006 v0.2.0 · Version: 1.0.0
+# ==============================================================================
+# Single source of truth for all tools known to ziro-shell.
+# Replaces hardcoded generator logic with a pure declarative registry.
+#
+# SCHEMA SPECIFICATION:
+# ---------------------
+# - name              (str, req)  : Unique identifier in kebab-case (e.g. "fast-syntax-highlighting").
+# - type              (enum, req) : Fundamental tool classification:
+#                                   "plugin"    : Zsh plugin / repo (cloned or local).
+#                                   "binary"    : External system binary (compiled CLI tool).
+#                                   "builtin"   : Zsh built-in facility (e.g. compinit).
+#                                   "bootstrap" : Core infrastructure shell script.
+# - category          (enum, req) : Functional category matching defaults.toml keys:
+#                                   "prompt", "auto_suggest", "syntax_highlighting",
+#                                   "completions", "colors", "navigation",
+#                                   "fuzzy_finder", "core", "infra".
+# - load_method       (enum, req) : How the tool code is invoked:
+#                                   "binary-eval"      : (( $+commands[B] )) && znap eval B 'INIT_CMD'
+#                                   "clone-eval"       : znap eval REPO 'EVAL_CMD'
+#                                   "clone-source"     : [ziro-defer] znap source REPO [SUBPATH]
+#                                   "local-source"     : [ziro-defer] [ziro local] source PATH
+#                                   "builtin-load"     : Builtin invocation (e.g. compinit)
+#                                   "bootstrap-source" : Direct source of core runtime shim
+# - load_timing       (enum, req) : When in the shell lifecycle the tool is loaded:
+#                                   "eager"  : Sourced synchronously during Layer 0 bootstrap.
+#                                   "defer"  : Deferred via ziro-defer (runs on idle after prompt).
+#                                   "eval"   : Evaluated via znap eval with cache.
+#                                   "prompt" : Sourced after prompt configuration.
+# - load_order        (int, req)  : Order of emission in plugins.gen.zsh (1=first, N=last).
+# - guard             (enum, req) : Safety check before loading:
+#                                   "none"         : No runtime check required.
+#                                   "binary-check" : Guard with (( $+commands[binary_name] )).
+#
+# CONDITIONAL FIELDS:
+# - source            (str)       : GitHub slug (user/repo) or path for cloned/bootstrap tools.
+# - subpath           (str)       : Sub-directory inside repository (e.g. "plugins/git").
+# - binary_name       (str)       : Executable name checked by $+commands when guard="binary-check".
+# - init_command      (str)       : Command string executed for "binary-eval".
+# - eval_command      (str)       : In-repo command executed for "clone-eval".
+# - local_path        (str)       : File path for "local-source" (supports $ZIRO_HOME).
+# - cache_key         (str)       : Key identifier for znap eval cache file.
+# - alternatives_only (bool)      : If true, not loaded by default; active only when selected.
+# - conflicts_with    (list[str]) : List of tool names that cannot be active simultaneously.
+# - github            (str)       : Canonical upstream repository URL.
+# - description       (str)       : Short summary of functionality.
+# ==============================================================================
+
+[meta]
+schema_version = "1.0.0"
+generated_by = "ziro core"
+description = "Declarative tools registry for ziro-shell"
+
+# ------------------------------------------------------------------------------
+# 1. BOOTSTRAP INFRASTRUCTURE (Layer 0 Bootstrap)
+# ------------------------------------------------------------------------------
+
+[[tool]]
+name = "znap"
+type = "bootstrap"
+category = "infra"
+load_method = "bootstrap-source"
+load_timing = "eager"
+load_order = 0
+guard = "none"
+source = "$ZIRO_HOME/vendor/znap/znap.zsh"
+github = "https://github.com/marlonrichert/zsh-snap"
+description = "Fast, lightweight Zsh plugin manager and eval cacher."
+
+[[tool]]
+name = "ziro-defer"
+type = "bootstrap"
+category = "infra"
+load_method = "bootstrap-source"
+load_timing = "eager"
+load_order = 0
+guard = "none"
+source = "$ZIRO_HOME/ziro-defer/ziro-defer.plugin.zsh"
+github = "https://github.com/romkatv/zsh-defer"
+description = "Defers execution until Zsh is idle; <1ms load overhead."
+
+# ------------------------------------------------------------------------------
+# 2. DEFAULT ACTIVE TOOLS (Ordered 1 to 10)
+# ------------------------------------------------------------------------------
+
+[[tool]]
+name = "zsh-completions"
+type = "plugin"
+category = "completions"
+load_method = "clone-source"
+load_timing = "eager"
+load_order = 1
+guard = "none"
+source = "zsh-users/zsh-completions"
+github = "https://github.com/zsh-users/zsh-completions"
+description = "Additional completion definitions for Zsh (must load before compinit)."
+
+[[tool]]
+name = "ohmyzsh-git"
+type = "plugin"
+category = "core"
+load_method = "clone-source"
+load_timing = "eager"
+load_order = 2
+guard = "none"
+source = "ohmyzsh/ohmyzsh"
+subpath = "plugins/git"
+github = "https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/git"
+description = "Git aliases and functions with compdef definitions."
+
+[[tool]]
+name = "compinit"
+type = "builtin"
+category = "core"
+load_method = "builtin-load"
+load_timing = "eager"
+load_order = 3
+guard = "none"
+description = "Zsh standard completion system initialization."
+
+[[tool]]
+name = "starship"
+type = "binary"
+category = "prompt"
+load_method = "binary-eval"
+load_timing = "eval"
+load_order = 4
+guard = "binary-check"
+binary_name = "starship"
+init_command = "starship init zsh --print-full-init"
+cache_key = "starship"
+conflicts_with = ["powerlevel10k", "pure"]
+github = "https://github.com/starship/starship"
+description = "Fast, customizable prompt for any shell."
+
+[[tool]]
+name = "fzf"
+type = "binary"
+category = "fuzzy_finder"
+load_method = "binary-eval"
+load_timing = "eval"
+load_order = 5
+guard = "binary-check"
+binary_name = "fzf"
+init_command = "fzf --zsh"
+cache_key = "fzf"
+github = "https://github.com/junegunn/fzf"
+description = "General-purpose command-line fuzzy finder."
+
+[[tool]]
+name = "ziro-ghost"
+type = "plugin"
+category = "auto_suggest"
+load_method = "local-source"
+load_timing = "defer"
+load_order = 6
+guard = "none"
+local_path = "$ZIRO_HOME/ghost/ghost.zsh"
+conflicts_with = ["zsh-autosuggestions"]
+github = "https://github.com/Pakrohk-DotFiles/ziro-shell"
+description = "Ziro self-maintained history autosuggestion and ZLE popup."
+
+[[tool]]
+name = "fast-syntax-highlighting"
+type = "plugin"
+category = "syntax_highlighting"
+load_method = "clone-source"
+load_timing = "defer"
+load_order = 7
+guard = "none"
+source = "zdharma-continuum/fast-syntax-highlighting"
+conflicts_with = ["zsh-syntax-highlighting"]
+github = "https://github.com/zdharma-continuum/fast-syntax-highlighting"
+description = "Feature-rich, pure-Zsh syntax highlighting."
+
+[[tool]]
+name = "zcolors"
+type = "plugin"
+category = "colors"
+load_method = "clone-eval"
+load_timing = "eval"
+load_order = 8
+guard = "none"
+source = "marlonrichert/zcolors"
+eval_command = "./zcolors ${(q)LS_COLORS}"
+cache_key = "zcolors"
+github = "https://github.com/marlonrichert/zcolors"
+description = "Derives a coherent color theme from LS_COLORS for git, grep, less, and completions."
+
+[[tool]]
+name = "zoxide"
+type = "binary"
+category = "navigation"
+load_method = "binary-eval"
+load_timing = "eval"
+load_order = 9
+guard = "binary-check"
+binary_name = "zoxide"
+init_command = "zoxide init zsh"
+cache_key = "zoxide"
+conflicts_with = ["z", "wd"]
+github = "https://github.com/ajeetdsouza/zoxide"
+description = "Smarter cd command, inspired by z and autojump."
+
+[[tool]]
+name = "ohmyzsh-colored-man-pages"
+type = "plugin"
+category = "core"
+load_method = "clone-source"
+load_timing = "defer"
+load_order = 10
+guard = "none"
+source = "ohmyzsh/ohmyzsh"
+subpath = "plugins/colored-man-pages"
+github = "https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/colored-man-pages"
+description = "Adds color highlighting to man pages."
+
+# ------------------------------------------------------------------------------
+# 3. ALTERNATIVES & OPTIONAL PLUGINS (Configured via defaults.toml)
+# ------------------------------------------------------------------------------
+
+[[tool]]
+name = "powerlevel10k"
+type = "plugin"
+category = "prompt"
+load_method = "clone-source"
+load_timing = "defer"
+load_order = 4
+guard = "none"
+source = "romkatv/powerlevel10k"
+alternatives_only = true
+conflicts_with = ["starship", "pure"]
+github = "https://github.com/romkatv/powerlevel10k"
+description = "Fast, flexible powerline theme for Zsh."
+
+[[tool]]
+name = "pure"
+type = "plugin"
+category = "prompt"
+load_method = "clone-source"
+load_timing = "defer"
+load_order = 4
+guard = "none"
+source = "sindresorhus/pure"
+alternatives_only = true
+conflicts_with = ["starship", "powerlevel10k"]
+github = "https://github.com/sindresorhus/pure"
+description = "Pretty, minimal and fast Zsh prompt."
+
+[[tool]]
+name = "zsh-autosuggestions"
+type = "plugin"
+category = "auto_suggest"
+load_method = "clone-source"
+load_timing = "defer"
+load_order = 6
+guard = "none"
+source = "zsh-users/zsh-autosuggestions"
+alternatives_only = true
+conflicts_with = ["ziro-ghost"]
+github = "https://github.com/zsh-users/zsh-autosuggestions"
+description = "Fish-like autosuggestions for Zsh."
+
+[[tool]]
+name = "zsh-syntax-highlighting"
+type = "plugin"
+category = "syntax_highlighting"
+load_method = "clone-source"
+load_timing = "defer"
+load_order = 7
+guard = "none"
+source = "zsh-users/zsh-syntax-highlighting"
+alternatives_only = true
+conflicts_with = ["fast-syntax-highlighting"]
+github = "https://github.com/zsh-users/zsh-syntax-highlighting"
+description = "Fish shell-like syntax highlighting for Zsh."
+
+[[tool]]
+name = "z"
+type = "plugin"
+category = "navigation"
+load_method = "clone-source"
+load_timing = "defer"
+load_order = 9
+guard = "none"
+source = "rupa/z"
+alternatives_only = true
+conflicts_with = ["zoxide", "wd"]
+github = "https://github.com/rupa/z"
+description = "Tracks most used directories to jump around."
+
+[[tool]]
+name = "wd"
+type = "plugin"
+category = "navigation"
+load_method = "clone-source"
+load_timing = "defer"
+load_order = 9
+guard = "none"
+source = "mfaerevaag/wd"
+alternatives_only = true
+conflicts_with = ["zoxide", "z"]
+github = "https://github.com/mfaerevaag/wd"
+description = "Jump to custom tagged directories."
+
