@@ -38,6 +38,13 @@ def _config_dir() -> Path:
     return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "ziro"
 
 
+def _ziro_home() -> Path:
+    env = os.environ.get("ZIRO_HOME")
+    if env:
+        return Path(env)
+    return Path.home() / ".ziro"
+
+
 def _write_defaults(cfg: Path) -> None:
     """Write minimal defaults.toml (hand-rolled)."""
     cfg.mkdir(parents=True, exist_ok=True)
@@ -46,13 +53,43 @@ def _write_defaults(cfg: Path) -> None:
         return
     content = "# ziro-shell — user defaults\n"
     content += "# Editable by hand. Regenerated only on `ziro config reset`.\n"
+    content += "# Layer: 0 (config) · Spec: 006 · AUTO-GENERATED: no\n"
     content += "\n"
     content += "[version]\n"
     content += 'schema = "0.1.5"\n'
     content += "\n"
     content += "[prompt]\n"
     content += 'default = "starship"\n'
+    content += "\n"
+    content += "[colors]\n"
+    content += 'default = "zcolors"\n'
+    content += "\n"
+    content += "[syntax_highlighting]\n"
+    content += 'default = "fast-syntax-highlighting"\n'
+    content += "\n"
+    content += "[auto_suggest]\n"
+    content += 'default = "ziro-ghost"\n'
+    content += "\n"
+    content += "[completions]\n"
+    content += 'default = "zsh-completions"\n'
+    content += "\n"
+    content += "[navigation]\n"
+    content += 'default = "zoxide"\n'
+    content += "\n"
+    content += "[fuzzy_finder]\n"
+    content += 'default = "fzf"\n'
+    content += "\n"
+    content += "[ui]\n"
+    content += "rich = true\n"
     defaults.write_text(content)
+
+
+def _write_prompt_conf(cfg: Path) -> None:
+    """Ensure prompt.conf exists (defaults to starship)."""
+    cfg.mkdir(parents=True, exist_ok=True)
+    pconf = cfg / "prompt.conf"
+    if not pconf.is_file():
+        pconf.write_text("starship\n", encoding="utf-8")
 
 
 def _write_tools(cfg: Path) -> None:
@@ -176,11 +213,12 @@ def cmd_install(argv: list[str]) -> int:
     print(f"mode: {choice}")
 
     if dry_run:
-        print("[dry-run] would write defaults.toml, tools.toml, tags/builtin.toml, completions/_ziro")
+        print("[dry-run] would write defaults.toml, tools.toml, tags/builtin.toml, completions/_ziro, derived/plugins.gen.zsh")
         return 0
 
     data = _data_dir()
     from core.tty import is_tty
+    from core.generator import generate_plugins_gen
     if is_tty():
         try:
             from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -193,37 +231,49 @@ def cmd_install(argv: list[str]) -> int:
                 _write_defaults(cfg)
                 _write_tools(cfg)
                 _write_tags(cfg)
+                _write_prompt_conf(cfg)
                 comp_file = _write_completion(data)
                 _ensure_venv()
+                gen_file = generate_plugins_gen(cfg, ziro_home=_ziro_home())
         except Exception:
             _write_defaults(cfg)
             _write_tools(cfg)
             _write_tags(cfg)
+            _write_prompt_conf(cfg)
             comp_file = _write_completion(data)
             _ensure_venv()
+            gen_file = generate_plugins_gen(cfg, ziro_home=_ziro_home())
 
         from core.rich_helpers import render_table
         table_rows = [
             ["defaults.toml", f"{cfg}/defaults.toml", "Written"],
             ["tools.toml", f"{cfg}/tools.toml", "Written"],
+            ["prompt.conf", f"{cfg}/prompt.conf", "Written"],
             ["builtin.toml", f"{cfg}/tags/builtin.toml", "Written"],
             ["_ziro", f"{comp_file}", "Written"],
+            ["plugins.gen.zsh", f"{gen_file}", "Written"],
         ]
         if not render_table("Installed Configurations", ["File", "Path", "Status"], table_rows):
             print(f"✅ wrote: {cfg}/defaults.toml")
             print(f"✅ wrote: {cfg}/tools.toml")
+            print(f"✅ wrote: {cfg}/prompt.conf")
             print(f"✅ wrote: {cfg}/tags/builtin.toml")
             print(f"✅ wrote: {comp_file}")
+            print(f"✅ wrote: {gen_file}")
     else:
         _write_defaults(cfg)
         _write_tools(cfg)
         _write_tags(cfg)
+        _write_prompt_conf(cfg)
         comp_file = _write_completion(data)
         _ensure_venv()
+        gen_file = generate_plugins_gen(cfg, ziro_home=_ziro_home())
         print(f"✅ wrote: {cfg}/defaults.toml")
         print(f"✅ wrote: {cfg}/tools.toml")
+        print(f"✅ wrote: {cfg}/prompt.conf")
         print(f"✅ wrote: {cfg}/tags/builtin.toml")
         print(f"✅ wrote: {comp_file}")
+        print(f"✅ wrote: {gen_file}")
 
     ok, msg = _verify_starship()
     if not ok:

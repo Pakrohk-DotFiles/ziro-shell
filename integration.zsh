@@ -148,6 +148,17 @@ fi
 [[ -r "$ZIRO_CONFIG/derived/plugins.gen.zsh" ]] && \
   source "$ZIRO_CONFIG/derived/plugins.gen.zsh"
 
+# ─── Prompt adapter (Spec 004 R1 §7, Spec 006 Principle XIII) ───
+typeset -g _ziro_prompt=""
+if [[ -r "${ZIRO_CONFIG}/prompt.conf" ]]; then
+  _ziro_prompt="$(<"${ZIRO_CONFIG}/prompt.conf")"
+fi
+_ziro_prompt="${_ziro_prompt//[[:space:]]/}"
+if [[ -n "$_ziro_prompt" && "$_ziro_prompt" != "none" && -r "${ZIRO_HOME}/prompts/${_ziro_prompt}.zsh" ]]; then
+  source "${ZIRO_HOME}/prompts/${_ziro_prompt}.zsh"
+fi
+unset _ziro_prompt
+
 # ─── Background update check (non-blocking, opt-out, 24h cache) ───
 _ziro_update_check_background() {
   # 1. Non-interactive and non-TTY guard (fast exit for CI, scripts, subshells)

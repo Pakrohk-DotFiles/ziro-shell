@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 import os
 from pathlib import Path
 
+from core.models import Strategy
+from core.resolver import ResolvedConfig
 from core.ziro_load import LoadSpec, emit, from_resolved
 
 
@@ -121,7 +123,11 @@ def generate(
     if opts.enforce_order:
         def order_key(cfg):
             try:
-                return LOAD_ORDER.index(cfg.plugin)
+                if cfg.plugin in LOAD_ORDER:
+                    return LOAD_ORDER.index(cfg.plugin)
+                if cfg.plugin == "git" and "ohmyzsh-git" in LOAD_ORDER:
+                    return LOAD_ORDER.index("ohmyzsh-git")
+                return len(LOAD_ORDER)
             except ValueError:
                 return len(LOAD_ORDER)  # unknown → end
         ordered = sorted(configs, key=order_key)
@@ -154,12 +160,155 @@ def generate(
     return output_path
 
 
+def generate_plugins_gen(
+    config_dir: Path,
+    ziro_home: Path | None = None,
+) -> Path:
+    """Generate ~/.config/ziro/derived/plugins.gen.zsh from defaults.toml and installed plugins.
+
+    Implements Spec 001 FR-006a (materialized at generation time) and Spec 004 R1 (load order).
+    """
+    zh = ziro_home or Path(os.environ.get("ZIRO_HOME", Path.home() / ".ziro"))
+    configs: list[ResolvedConfig] = []
+
+    # 1. Parse defaults from defaults.toml (or fallback to Spec 004 R1 defaults)
+    defaults_file = config_dir / "defaults.toml"
+    defaults_data: dict = {}
+    if defaults_file.is_file():
+        try:
+            import tomllib
+            with defaults_file.open("rb") as f:
+                defaults_data = tomllib.load(f)
+        except Exception:
+            pass
+
+    # Prompt
+    prompt_val = defaults_data.get("prompt", {}).get("default", "starship")
+    pconf = config_dir / "prompt.conf"
+    if pconf.is_file():
+        try:
+            prompt_val = pconf.read_text(encoding="utf-8").strip() or prompt_val
+        except OSError:
+            pass
+    if prompt_val == "starship":
+        configs.append(
+            ResolvedConfig(
+                plugin="starship",
+                strategy=Strategy.EAGER,
+                eval_cache=True,
+                raw="znap eval starship 'starship init zsh --print-full-init'",
+            )
+        )
+
+    # Completions (before compinit)
+    comp_val = defaults_data.get("completions", {}).get("default", "zsh-completions")
+    if comp_val != "none":
+        configs.append(
+            ResolvedConfig(
+                plugin="zsh-completions",
+                strategy=Strategy.EAGER,
+                raw="znap source zsh-users/zsh-completions",
+            )
+        )
+
+    # Fuzzy finder
+    fzf_val = defaults_data.get("fuzzy_finder", {}).get("default", "fzf")
+    if fzf_val != "none":
+        configs.append(
+            ResolvedConfig(
+                plugin="fzf",
+                strategy=Strategy.EAGER,
+                eval_cache=True,
+                raw="znap eval fzf 'fzf --zsh'",
+            )
+        )
+
+    # Auto suggest
+    suggest_val = defaults_data.get("auto_suggest", {}).get("default", "ziro-ghost")
+    if suggest_val == "ziro-ghost":
+        configs.append(
+            ResolvedConfig(
+                plugin="ziro-ghost",
+                strategy=Strategy.AFTER_PROMPT,
+                raw="ziro-defer source $ZIRO_HOME/ghost/ghost.zsh",
+            )
+        )
+    elif suggest_val == "zsh-autosuggestions":
+        configs.append(
+            ResolvedConfig(
+                plugin="zsh-autosuggestions",
+                strategy=Strategy.AFTER_PROMPT,
+                raw="ziro-defer znap source zsh-users/zsh-autosuggestions",
+            )
+        )
+
+    # Syntax highlighting
+    syn_val = defaults_data.get("syntax_highlighting", {}).get("default", "fast-syntax-highlighting")
+    if syn_val == "fast-syntax-highlighting":
+        configs.append(
+            ResolvedConfig(
+                plugin="fast-syntax-highlighting",
+                strategy=Strategy.AFTER_PROMPT,
+                raw="ziro-defer znap source zdharma-continuum/fast-syntax-highlighting",
+            )
+        )
+    elif syn_val == "zsh-syntax-highlighting":
+        configs.append(
+            ResolvedConfig(
+                plugin="zsh-syntax-highlighting",
+                strategy=Strategy.AFTER_PROMPT,
+                raw="ziro-defer znap source zsh-users/zsh-syntax-highlighting",
+            )
+        )
+
+    # Colors
+    colors_val = defaults_data.get("colors", {}).get("default", "zcolors")
+    if colors_val == "zcolors":
+        configs.append(
+            ResolvedConfig(
+                plugin="zcolors",
+                strategy=Strategy.EAGER,
+                eval_cache=True,
+                raw='znap eval zcolors "zcolors ${(q)LS_COLORS}"',
+            )
+        )
+
+    # Navigation
+    nav_val = defaults_data.get("navigation", {}).get("default", "zoxide")
+    if nav_val == "zoxide":
+        configs.append(
+            ResolvedConfig(
+                plugin="zoxide",
+                strategy=Strategy.EAGER,
+                eval_cache=True,
+                raw="znap eval zoxide 'zoxide init zsh'",
+            )
+        )
+
+    # 2. Add local plugins in $ZIRO_HOME/plugins/
+    pdir = zh / "plugins"
+    if pdir.is_dir():
+        from core.analyzer import analyze_with_cache
+        from core.resolver import resolve
+        for p in sorted(pdir.iterdir()):
+            if p.is_dir() and not p.name.startswith("."):
+                try:
+                    analysis = analyze_with_cache(p, p.name)
+                    configs.append(resolve(analysis, config_dir))
+                except Exception:
+                    continue
+
+    output_path = default_output_path(config_dir)
+    return generate(configs, output_path, options=EmitOptions(enforce_order=True, ziro_home=zh))
+
+
 def default_output_path(config_dir: Path) -> Path:
     return config_dir / "derived" / "plugins.gen.zsh"
 
 
 __all__ = [
     "generate",
+    "generate_plugins_gen",
     "default_output_path",
     "EmitOptions",
     "LOAD_ORDER",
