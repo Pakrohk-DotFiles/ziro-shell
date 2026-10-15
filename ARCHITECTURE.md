@@ -48,17 +48,19 @@ either in hot-path (< 5ms) or cold-path (user-invoked).
 
 ## CLI surface
 
-| Command                                    | Layer   | Spec      |
-|--------------------------------------------|---------|-----------|
-| `ziro install`                             | L0      | 006       |
-| `ziro plugin add/remove/list/show`         | L1+L2+L3| 001, 002, 003 |
-| `ziro tag list/show/add/remove/reset`      | L2      | 003       |
-| `ziro config show/edit`                    | L0      | 006       |
-| `ziro suggest list/set/disable`            | L0      | 006       |
-| `ziro theme list/current/apply/reset`      | T2      | 006       |
-| `ziro prompt list/current/set`             | T1      | 006       |
-| `ziro doctor`                              | L0      | 006 SC-1  |
-| `ziro bench`                               | L0      | 005 SC-1  |
+| Command                                    | Layer   | Module                     |
+|--------------------------------------------|---------|----------------------------|
+| `ziro install`                             | L0      | `core/install_cli.py`      |
+| `ziro update`                              | L0      | `core/update_cli.py`       |
+| `ziro plugin add/remove/list/show`         | L1+L2+L3| `core/plugin_cli.py`       |
+| `ziro tag list/show/add/remove/reset`      | L2      | `core/tag_cli.py`          |
+| `ziro config show/edit`                    | L0      | `core/config_cli.py`       |
+| `ziro suggest list/set/disable`            | L0      | `core/suggest_cli.py`      |
+| `ziro theme list/current/apply/reset`      | T2      | `core/theme_cli.py`        |
+| `ziro prompt list/current/set`             | T1      | `core/prompt_cli.py`       |
+| `ziro doctor`                              | L0      | `core/doctor_cli.py`       |
+| `ziro bench`                               | L0      | `core/bench_cli.py`        |
+| `ziro completion`                          | L0      | `core/completion_cli.py`   |
 
 ## Non-goals
 
@@ -72,7 +74,7 @@ either in hot-path (< 5ms) or cold-path (user-invoked).
 - `README.md` — user guide
 - `INSTALL.md` — installation
 - `CHANGELOG.md` — version history
-- `.specify/specs/` — detailed specifications (local-only)
+- `docs/wiki/sources/` — architecture decision records (ADRs)
 
 ## Legacy code
 

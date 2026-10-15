@@ -33,7 +33,7 @@ class TestCompletion(unittest.TestCase):
         cmd_names = [c[0] for c in data["commands"]]
         expected_cmds = [
             "install", "plugin", "tag", "suggest", "theme",
-            "prompt", "config", "doctor", "bench", "completion", "help",
+            "prompt", "config", "doctor", "bench", "completion", "update", "help",
         ]
         for ec in expected_cmds:
             self.assertIn(ec, cmd_names, f"Expected {ec} in completion commands")
@@ -46,7 +46,7 @@ class TestCompletion(unittest.TestCase):
 
     def test_completion_covers_all_top_level_commands(self) -> None:
         script = generate_zsh_completion()
-        for cmd in ("install", "plugin", "tag", "suggest", "theme", "prompt", "config", "doctor", "bench", "completion", "help"):
+        for cmd in ("install", "plugin", "tag", "suggest", "theme", "prompt", "config", "doctor", "bench", "completion", "update", "help"):
             self.assertIn(f"'{cmd}:", script, f"Missing '{cmd}:' in generated completion script")
 
     def test_completion_covers_subcommands(self) -> None:

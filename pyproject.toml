@@ -1,8 +1,6 @@
 [project]
 name = "ziro-shell"
-version = "1.0.0"
-name = "ziro-shell"
-version = "1.0.0"
+version = "1.0.2"
 description = "Fast, layered Zsh runtime customization"
 readme = "README.md"
 requires-python = ">=3.11"

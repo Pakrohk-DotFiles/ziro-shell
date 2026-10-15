@@ -102,4 +102,5 @@ credentials.json
 # ─── Tooling config (local machine-only) ───
 opencode-rag.json
 vendor/
+/plugins/
 plugins/**/*.zwc

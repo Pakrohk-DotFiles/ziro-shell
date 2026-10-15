@@ -148,5 +148,86 @@ fi
 [[ -r "$ZIRO_CONFIG/derived/plugins.gen.zsh" ]] && \
   source "$ZIRO_CONFIG/derived/plugins.gen.zsh"
 
+# ─── Prompt adapter (Spec 004 R1 §7, Spec 006 Principle XIII) ───
+typeset -g _ziro_prompt=""
+if [[ -r "${ZIRO_CONFIG}/prompt.conf" ]]; then
+  _ziro_prompt="$(<"${ZIRO_CONFIG}/prompt.conf")"
+fi
+_ziro_prompt="${_ziro_prompt//[[:space:]]/}"
+if [[ -n "$_ziro_prompt" && "$_ziro_prompt" != "none" && -r "${ZIRO_HOME}/prompts/${_ziro_prompt}.zsh" ]]; then
+  source "${ZIRO_HOME}/prompts/${_ziro_prompt}.zsh"
+fi
+unset _ziro_prompt
+
+# ─── Background update check (non-blocking, opt-out, 24h cache) ───
+_ziro_update_check_background() {
+  # 1. Non-interactive and non-TTY guard (fast exit for CI, scripts, subshells)
+  [[ -o interactive ]] || return 0
+  [[ -t 1 ]] || return 0
+
+  # 2. Opt-out guard from defaults.toml
+  local cfg="${ZIRO_CONFIG:-$HOME/.config/ziro}/defaults.toml"
+  if [[ -f "$cfg" ]]; then
+    if grep -qE '^(check_for_updates|enabled)[[:space:]]*=[[:space:]]*false' "$cfg" 2>/dev/null; then
+      return 0
+    fi
+  fi
+
+  local cache_dir="${ZIRO_CACHE:-$HOME/.cache/ziro}"
+  local cache_file="$cache_dir/update-check.json"
+
+  # 3. Notification: if cache indicates update is available, alert user once
+  if [[ -f "$cache_file" ]]; then
+    if grep -q '"available":[[:space:]]*true' "$cache_file" 2>/dev/null; then
+      local notify_flag="$cache_dir/.update_notified"
+      if [[ ! -f "$notify_flag" ]]; then
+        print -P "\n%F{yellow}[*] A new update is available for Ziro Shell! Run '%F{cyan}ziro update%F{yellow}' to apply.%f\n"
+        touch "$notify_flag" 2>/dev/null || true
+      fi
+    fi
+  fi
+
+  # 4. Cache TTL check (24h = 86400s)
+  if [[ -f "$cache_file" ]]; then
+    local last_mtime=0
+    zmodload -F zsh/stat b:zstat 2>/dev/null
+    local -A s_info
+    if zstat -H s_info "$cache_file" 2>/dev/null; then
+      last_mtime=${s_info[mtime]:-0}
+    fi
+    local now=$EPOCHSECONDS
+    (( ${+EPOCHSECONDS} )) || local now=$(date +%s)
+    if (( now - last_mtime < 86400 )); then
+      return 0
+    fi
+  fi
+
+  # 5. Non-blocking background fetch & check
+  (
+    if [[ -d "$ZIRO_HOME/.git" ]] && command -v git &>/dev/null; then
+      mkdir -p "$cache_dir" 2>/dev/null || true
+      cd "$ZIRO_HOME" || exit 0
+      git fetch -q origin main >/dev/null 2>&1 || exit 0
+      local lhash=$(git rev-parse HEAD 2>/dev/null)
+      local rhash=$(git rev-parse origin/main 2>/dev/null)
+      local avail="false"
+      local behind=0
+      if [[ -n "$lhash" && -n "$rhash" && "$lhash" != "$rhash" ]]; then
+        behind=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
+        if (( behind > 0 )); then
+          avail="true"
+          rm -f "$cache_dir/.update_notified" 2>/dev/null || true
+        fi
+      fi
+      local ts=$(date +%s)
+      cat > "$cache_file" <<EOF
+{"available": $avail, "local": "${lhash:-unknown}", "remote": "${rhash:-unknown}", "behind": $behind, "checked_at": $ts, "error": null}
+EOF
+    fi
+  ) &!
+}
+
+_ziro_update_check_background
+
 # Mark bootstrap complete
 export ZIRO_LOADED=1

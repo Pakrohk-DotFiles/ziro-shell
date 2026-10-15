@@ -1,10 +1,16 @@
 # Changelog
 
 All notable changes to ziro-shell are documented here.
-This project adheres to a 3-tier versioning discipline (ADR-007, Constitution Principle XV):
+This project adheres to a 3-tier versioning discipline (ADR-007):
 - **Patch Tier (`X.X.Y`)**: Bug fixes, internal optimizations, UI polish, CLI UX enhancements, and standalone plugin additions.
 - **Minor Tier (`X.Y.X`)**: Large new features and full multi-layer subsystem orchestrations.
 - **Major Tier (`Y.X.X`)**: Fundamental architecture rewrites or paradigm shifts breaking Core Principles.
+
+## Upcoming
+
+- **v1.0.2** — Project Cleanup (in progress)
+- **v1.1.2** — Ziro Ghost (standalone autosuggest plugin)
+- **v1.1.5** — pf (cross-shell package manager) + standard helpers
 
 ## [1.0.0] — Foundation Release (2026-10-13)
 
@@ -26,19 +32,19 @@ This project adheres to a 3-tier versioning discipline (ADR-007, Constitution Pr
 ### Benchmarks
 
 - Hot-path: `< 5ms` Ziro contribution (target met)
-- 127 unit tests + 2 integration tests
+- 229 tests (unit and integration)
 
 ### Architecture
 
 - See `ARCHITECTURE.md` for layer model and frozen interfaces
-- State management: config/cache/derived separation per Constitution Principle V
+- State management: config/cache/derived separation (XDG-compliant)
 
 ### Documentation
 
 - `README.md` — quick start
 - `INSTALL.md` — installation guide
 - `ARCHITECTURE.md` — layer model
-- `.specify/specs/` — 9 active specs + constitution (local-only)
+- `docs/wiki/sources/` — architecture decision records (ADRs)
 
 ## Pre-release history
 

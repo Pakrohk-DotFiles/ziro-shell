@@ -476,6 +476,22 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         ],
         related=["install", "help"],
     ),
+    "update": HelpEntry(
+        name="update",
+        summary="Update Ziro Shell to latest release",
+        usage="ziro update [--check] [--force] [--quiet]",
+        flags=[
+            ("-c, --check", "Check for available updates without applying"),
+            ("-f, --force", "Force update even if working tree has changes"),
+            ("-q, --quiet", "Suppress progress messages"),
+        ],
+        examples=[
+            "ziro update",
+            "ziro update --check",
+            "ziro update --force",
+        ],
+        related=["doctor", "install"],
+    ),
     "help": HelpEntry(
         name="help",
         summary="Show help information for ziro commands",

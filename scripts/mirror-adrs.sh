@@ -24,6 +24,7 @@ declare -A MAP=(
   ["ADR-005-ziro-defer-directory-placement.md"]="adr-005-ziro-defer-directory-placement.md"
   ["ADR-006-ghost-architecture.md"]="adr-006-ghost-architecture.md"
   ["ADR-007-versioning-policy.md"]="adr-007-versioning-policy.md"
+  ["ADR-008-roadmap-phases-7-9.md"]="adr-008-roadmap-phases.md"
 )
 
 count=0
