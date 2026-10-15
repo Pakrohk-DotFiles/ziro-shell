@@ -261,15 +261,14 @@ def generate_plugins_gen(
             )
         )
 
-    # Colors
+    # Colors (Zsh plugin, not external binary)
     colors_val = defaults_data.get("colors", {}).get("default", "zcolors")
     if colors_val == "zcolors":
         configs.append(
             ResolvedConfig(
                 plugin="zcolors",
-                strategy=Strategy.EAGER,
-                eval_cache=True,
-                raw='(( $+commands[zcolors] )) && znap eval zcolors "zcolors ${(q)LS_COLORS}"',
+                strategy=Strategy.AFTER_PROMPT,
+                raw="ziro-defer znap source marlonrichert/zcolors",
             )
         )
 
