@@ -1,0 +1,40 @@
+# ziro-shell — user defaults template
+# Layer: 0 (config) · Spec: 006 v0.2.1 · AUTO-GENERATED: no
+
+[version]
+schema = "0.2.1"
+
+[prompt]
+default = "starship"
+alternatives = ["powerlevel10k", "pure", "none"]
+
+[colors]
+default = "zcolors"
+alternatives = ["none"]
+
+[syntax_highlighting]
+default = "fast-syntax-highlighting"
+alternatives = ["zsh-syntax-highlighting", "none"]
+
+[auto_suggest]
+default = "ziro-ghost"
+alternatives = ["zsh-autosuggestions", "none"]
+
+[completions]
+default = "zsh-completions"
+alternatives = ["none"]
+
+[navigation]
+default = "zoxide"
+alternatives = ["z", "wd", "none"]
+
+[fuzzy_finder]
+default = "fzf"
+alternatives = ["none"]
+
+[git]
+default = "ohmyzsh-git"
+alternatives = ["none"]
+
+[ui]
+rich = true

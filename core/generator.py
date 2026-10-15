@@ -280,11 +280,15 @@ def generate_plugins_gen(
         tool_category = tool.get("category", "")
         tool_name = tool.get("name", "")
 
-        # Only emit tools matching active user selections
-        if tool_category not in active_selections:
-            continue
-        if tool_name not in selected_tool_names:
-            continue
+        # Core tools emit by default unless marked alternatives_only
+        if tool_category == "core":
+            if tool.get("alternatives_only", False) and tool_name not in selected_tool_names:
+                continue
+        else:
+            if tool_category not in active_selections:
+                continue
+            if tool_name not in selected_tool_names:
+                continue
 
         raw_line = emit_pattern(tool)
         timing = tool.get("load_timing", "")
@@ -302,8 +306,11 @@ def generate_plugins_gen(
     if pdir.is_dir():
         from core.analyzer import analyze_with_cache
         from core.resolver import resolve
+        known_factory_names = {t.get("name") for t in tools}
         for p in sorted(pdir.iterdir()):
             if p.is_dir() and not p.name.startswith("."):
+                if p.name in known_factory_names or f"ohmyzsh-{p.name}" in known_factory_names:
+                    continue
                 try:
                     analysis = analyze_with_cache(p, p.name)
                     configs.append(resolve(analysis, config_dir))

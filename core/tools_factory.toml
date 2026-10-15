@@ -16,7 +16,7 @@
 # - category          (enum, req) : Functional category matching defaults.toml keys:
 #                                   "prompt", "auto_suggest", "syntax_highlighting",
 #                                   "completions", "colors", "navigation",
-#                                   "fuzzy_finder", "core", "infra".
+#                                   "fuzzy_finder", "git", "core", "infra".
 # - load_method       (enum, req) : How the tool code is invoked:
 #                                   "binary-eval"      : (( $+commands[B] )) && znap eval B 'INIT_CMD'
 #                                   "clone-eval"       : znap eval REPO 'EVAL_CMD'
@@ -100,7 +100,7 @@ description = "Additional completion definitions for Zsh (must load before compi
 [[tool]]
 name = "ohmyzsh-git"
 type = "plugin"
-category = "core"
+category = "git"
 load_method = "clone-source"
 load_timing = "eager"
 load_order = 2
@@ -304,4 +304,71 @@ alternatives_only = true
 conflicts_with = ["zoxide", "z"]
 github = "https://github.com/mfaerevaag/wd"
 description = "Jump to custom tagged directories."
+
+[[tool]]
+name = "zsh-you-should-use"
+type = "plugin"
+category = "core"
+load_method = "clone-source"
+load_timing = "defer"
+load_order = 11
+guard = "none"
+source = "MichaelAquilina/zsh-you-should-use"
+alternatives_only = false
+github = "https://github.com/MichaelAquilina/zsh-you-should-use"
+description = "Reminds user when an alias exists for the typed command"
+
+[[tool]]
+name = "fzf-tab"
+type = "plugin"
+category = "core"
+load_method = "clone-source"
+load_timing = "defer"
+load_order = 12
+guard = "none"
+source = "Aloxaf/fzf-tab"
+alternatives_only = false
+requires_runtime = ["fzf"]
+github = "https://github.com/Aloxaf/fzf-tab"
+description = "Replace zsh default completion with fzf menu"
+
+[[tool]]
+name = "forgit"
+type = "plugin"
+category = "core"
+load_method = "clone-source"
+load_timing = "defer"
+load_order = 13
+guard = "none"
+source = "wfxr/forgit"
+alternatives_only = true
+requires_runtime = ["fzf"]
+conflicts_with = []
+github = "https://github.com/wfxr/forgit"
+description = "Interactive git operations with fzf (optional)"
+
+[[tool]]
+name = "ziro-helpers"
+type = "plugin"
+category = "core"
+load_method = "local-source"
+load_timing = "defer"
+load_order = 20
+guard = "none"
+local_path = "$ZIRO_HOME/lib/helpers.zsh"
+alternatives_only = false
+description = "Core shell utility functions (mkcd, extract, clipcopy, etc.)"
+
+[[tool]]
+name = "ziro-aliases"
+type = "plugin"
+category = "core"
+load_method = "local-source"
+load_timing = "defer"
+load_order = 21
+guard = "none"
+local_path = "$ZIRO_HOME/lib/aliases.zsh"
+alternatives_only = false
+description = "Auto-detected modern CLI aliases (eza, bat, rg, fd)"
+
 
