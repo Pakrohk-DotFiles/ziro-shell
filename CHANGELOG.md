@@ -8,9 +8,29 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 
 ## Upcoming
 
-- **v1.0.2** — Project Cleanup (in progress)
 - **v1.1.2** — Ziro Ghost (standalone autosuggest plugin)
 - **v1.1.5** — pf (cross-shell package manager) + standard helpers
+
+## [v1.1.0] — Declarative Architecture (Unreleased)
+
+### Changed (Architecture)
+- Tools registry migrated to declarative `core/tools_factory.toml` (single source of truth)
+- `core/generator.py` rewritten as generic reader/emitter (no hardcoded tool names)
+- Load order derived from TOML `load_order` field (was hardcoded)
+- Adding a new tool now requires TOML-only edit — no Python changes
+
+### Added
+- `core/tools_factory.toml` — declarative schema (name, type, category, load_method, load_timing, load_order, guard)
+- 25 new tests covering schema validation, generic emission, declarative acceptance
+- `docs/wiki/sources/spec-006-declarative-registry.md` — public docs
+
+### Removed
+- All hardcoded `if name == ...` branches in generator
+- `LOAD_ORDER` constant
+- `__getattr__` compatibility shim (TECH-DEBT-001 resolved)
+
+### Behavioral Guarantee
+- Generated `plugins.gen.zsh` is byte-identical to v1.0.2 output — no user-facing change
 
 ## [1.0.0] — Foundation Release (2026-10-13)
 

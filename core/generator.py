@@ -318,16 +318,6 @@ def default_output_path(config_dir: Path) -> Path:
     return config_dir / "derived" / "plugins.gen.zsh"
 
 
-def __getattr__(attr: str) -> Any:
-    """Dynamic attribute fallback for backward compatibility."""
-    if attr == "_".join(["LOAD", "ORDER"]):
-        tools = load_tools_registry()
-        filtered = [t for t in tools if not t.get("alternatives_only", False) and t.get("load_order", 0) > 0]
-        sorted_tools = sorted(filtered, key=lambda t: t.get("load_order", 999))
-        return [t["name"] for t in sorted_tools]
-    raise AttributeError(f"module {__name__!r} has no attribute {attr!r}")
-
-
 __all__ = [
     "generate",
     "generate_plugins_gen",
