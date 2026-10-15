@@ -2,8 +2,8 @@
 
 Ensures:
 - External binaries (starship, fzf, zoxide) use guarded evaluation: (( $+commands[...] )) && znap eval ...
-- Zsh plugins (zcolors, fast-syntax-highlighting, zsh-completions) are sourced directly without command guards.
-- zcolors is classified and loaded as a Zsh plugin (znap source), not an external binary.
+- Plugins and self-contained repo evals (zcolors, fast-syntax-highlighting, zsh-completions) do NOT use external command guards.
+- zcolors is evaluated via repo-scoped znap eval (znap eval marlonrichert/zcolors), not an external system binary.
 """
 
 import os
@@ -63,7 +63,7 @@ class TestPluginClassification(unittest.TestCase):
         self.assertIn("(( $+commands[zoxide] )) && znap eval zoxide", content)
 
     def test_zsh_plugins_do_not_have_command_guards(self) -> None:
-        """Zsh plugins must not be guarded by $+commands checks."""
+        """Zsh plugins and self-contained repo tools must not be guarded by $+commands checks."""
         gen_file = generate_plugins_gen(self.config_dir, ziro_home=REPO_ROOT)
         content = gen_file.read_text(encoding="utf-8")
 
@@ -71,22 +71,22 @@ class TestPluginClassification(unittest.TestCase):
         self.assertNotIn("(( $+commands[fast-syntax-highlighting] ))", content)
         self.assertNotIn("(( $+commands[zsh-completions] ))", content)
 
-    def test_zcolors_emitted_as_znap_source(self) -> None:
-        """zcolors must be emitted via znap source, not znap eval."""
+    def test_zcolors_emitted_as_repo_eval(self) -> None:
+        """zcolors must be emitted via repo-scoped znap eval, not a bare binary call."""
         gen_file = generate_plugins_gen(self.config_dir, ziro_home=REPO_ROOT)
         content = gen_file.read_text(encoding="utf-8")
 
-        self.assertIn("znap source marlonrichert/zcolors", content)
-        self.assertNotIn("znap eval zcolors", content)
+        self.assertIn('znap eval marlonrichert/zcolors "./zcolors', content)
+        self.assertNotIn('znap eval zcolors "zcolors', content)
 
-    def test_fresh_install_contains_zcolors_source(self) -> None:
-        """Fresh install emits plugins.gen.zsh with zcolors source line."""
+    def test_fresh_install_contains_zcolors_repo_eval(self) -> None:
+        """Fresh install emits plugins.gen.zsh with repo-scoped zcolors eval line."""
         rc = install_cli.main(["--default"])
         self.assertEqual(rc, 0)
 
         gen_file = default_output_path(self.config_dir)
         content = gen_file.read_text(encoding="utf-8")
-        self.assertIn("ziro-defer znap source marlonrichert/zcolors", content)
+        self.assertIn('znap eval marlonrichert/zcolors "./zcolors', content)
 
 
 if __name__ == "__main__":

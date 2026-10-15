@@ -79,7 +79,7 @@ class TestInstallGeneratesPlugins(unittest.TestCase):
         gen_file = default_output_path(self.config_dir)
         content = gen_file.read_text(encoding="utf-8")
         self.assertIn("zcolors", content)
-        self.assertIn("znap source marlonrichert/zcolors", content)
+        self.assertIn("znap eval marlonrichert/zcolors", content)
 
     def test_install_regenerates_idempotent(self) -> None:
         """Case 4: plugins.gen.zsh is regenerated on second install (idempotent)."""

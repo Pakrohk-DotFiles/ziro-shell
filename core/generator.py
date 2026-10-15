@@ -261,14 +261,15 @@ def generate_plugins_gen(
             )
         )
 
-    # Colors (Zsh plugin, not external binary)
+    # Colors (Zsh repo-based eval cache, self-contained via Znap — no external binary guard)
     colors_val = defaults_data.get("colors", {}).get("default", "zcolors")
     if colors_val == "zcolors":
         configs.append(
             ResolvedConfig(
                 plugin="zcolors",
-                strategy=Strategy.AFTER_PROMPT,
-                raw="ziro-defer znap source marlonrichert/zcolors",
+                strategy=Strategy.EAGER,
+                eval_cache=True,
+                raw='znap eval marlonrichert/zcolors "./zcolors ${(q)LS_COLORS}"',
             )
         )
 
