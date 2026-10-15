@@ -75,7 +75,7 @@ live in a first-class top-level tracked directory `ziro-defer/`, NOT in
 `upstream/` (vendored upstream + preserved MIT LICENSE) + own LICENSE + README
 (lineage + roadmap). integration.zsh sources `$ZIRO_HOME/ziro-defer/` first,
 vendor/ as deprecated fallback. At v1.1.0 the dir becomes
-`Pakrohk-DotFiles/ziro-defer` repo (znap source installable). Cross-refs
+`Pakrohk/ziro-defer` repo (znap source installable). Cross-refs
 [[concepts/defer-naming-split]], [[entities/znap-runtime]],
 [[sources/adr-002-znap-permanent]], [[concepts/plugin-sovereignty]].
 

@@ -10,7 +10,7 @@
 ## Quick install
 
 ```bash
-git clone https://github.com/Pakrohk-DotFiles/ziro-shell.git ~/.ziro
+git clone https://github.com/Pakrohk/ziro-shell.git ~/.ziro
 cd ~/.ziro
 python3 -m core install
 ```

@@ -49,7 +49,7 @@ fi
 Once moved to its own GitHub repository:
 
 ```zsh
-znap source Pakrohk-DotFiles/ziro-defer
+znap source Pakrohk/ziro-defer
 ```
 
 ## API
@@ -85,6 +85,6 @@ Forked from `romkatv/zsh-defer` (upstream commit preserved at
 ## Migration plan
 
 When this fork matures (v1.1.0), it moves to:
-`https://github.com/Pakrohk-DotFiles/ziro-defer`
+`https://github.com/Pakrohk/ziro-defer`
 
 Current location remains valid during transition.

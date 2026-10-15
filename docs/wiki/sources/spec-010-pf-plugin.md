@@ -5,7 +5,7 @@
 **Spec ID**: 010  
 **Parent Spec**: `000-architecture` (Layer 3 Plugin)  
 **Target Version**: `v1.1.5` (Phase 9)  
-**Repository**: `https://github.com/Pakrohk-DotFiles/ziro-pf`  
+**Repository**: `https://github.com/Pakrohk/ziro-pf`  
 **Relates to**: Constitution Principle XIV (Plugin Sovereignty), ADR-008, ADR-009 (Candidate)  
 
 ---
@@ -28,7 +28,7 @@ Rather than requiring developers to memorize divergent CLI flags across Arch Lin
 
 In accordance with **Constitution Principle XIV (Plugin Sovereignty)**:
 - **Zero Runtime Couplings**: `pf` MUST NOT assume the existence, installation, or configuration of Ziro Shell (`~/.ziro/`) or Python. It is an independent utility that functions equally well in vanilla shells, Oh My Zsh, Prezto, or bare server deployments.
-- **Autonomous Repository**: Development, issue tracking, versioning, and distribution occur in an isolated GitHub repository: `Pakrohk-DotFiles/ziro-pf`.
+- **Autonomous Repository**: Development, issue tracking, versioning, and distribution occur in an isolated GitHub repository: `Pakrohk/ziro-pf`.
 - **Ecosystem Integration**: When installed inside the Ziro Shell ecosystem, Ziro's Layer 0 (`integration.zsh`) and znap runtime clone and load `pf` as a standard sovereign plugin into `~/.local/share/ziro/plugins/ziro-pf/`.
 
 ---
@@ -99,7 +99,7 @@ paru → pacman → brew → apt-get → dnf → apk → zypper
 
 ## 6. File Structure & Repository Layout
 
-The standalone repository `Pakrohk-DotFiles/ziro-pf` will adhere to the following directory layout:
+The standalone repository `Pakrohk/ziro-pf` will adhere to the following directory layout:
 
 ```text
 ziro-pf/

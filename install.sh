@@ -3,7 +3,7 @@
 # Works when: run from file, piped via curl|bash, or from a git checkout.
 set -euo pipefail
 
-REPO_URL="https://github.com/Pakrohk-DotFiles/ziro-shell.git"
+REPO_URL="https://github.com/Pakrohk/ziro-shell.git"
 
 # --- Locate Python 3.11+ (engine needs tomllib; also PEP 604 dataclasses) ---
 PYTHON=""

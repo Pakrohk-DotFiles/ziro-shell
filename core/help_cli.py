@@ -10,6 +10,8 @@ import difflib
 import sys
 from dataclasses import dataclass, field
 
+from core.constants import REPO_URL
+
 
 @dataclass
 class HelpEntry:
@@ -651,7 +653,7 @@ def list_all(colorize: bool | None = None) -> str:
 
     lines.append("")
     lines.append("Run 'ziro help <command>' or 'ziro <command> --help' for details on a command.")
-    lines.append("For more: https://github.com/Pakrohk-DotFiles/ziro-shell")
+    lines.append(f"For more: {REPO_URL}")
     return "\n".join(lines)
 
 

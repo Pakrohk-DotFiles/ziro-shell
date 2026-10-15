@@ -13,7 +13,7 @@ Following the release of Ziro Shell `v1.0.1` (CLI Modernization & Rich UI), the 
 
 Simultaneously, the architectural roadmap requires explicit definitions for upcoming milestones (Phases 7, 8, and 9) to maintain strict adherence to the 3-tier versioning policy established in ADR-007 and Constitution Principle XV.
 
-A critical design tension emerged regarding whether ecosystem plugins—specifically Ziro Ghost, the upcoming `pf` cross-shell package manager, and shell alias helpers—should reside inside the core `ziro-shell` repository as monorepo subdirectories or be hosted in dedicated, sovereign repositories under the `Pakrohk-DotFiles` organization.
+A critical design tension emerged regarding whether ecosystem plugins—specifically Ziro Ghost, the upcoming `pf` cross-shell package manager, and shell alias helpers—should reside inside the core `ziro-shell` repository as monorepo subdirectories or be hosted in dedicated, sovereign repositories under `Pakrohk`.
 
 Finally, repository governance rules require reiterating that internal specification and tracking files in `.specify/` remain strictly local and must never be force-added to git tracking.
 
@@ -33,13 +33,13 @@ In accordance with ADR-007 (Patch Tier for internal cleanup, optimizations, and 
 
 ### 2. Per-Plugin Repositories (Plugin Sovereignty Architecture)
 
-Per Constitution Principle XIV (Plugin Sovereignty), every published plugin must operate completely standalone without assuming the presence of Ziro Shell or Python. To enforce true modularity, blast-radius isolation, and independent release lifecycles, ecosystem plugins will each reside in a dedicated GitHub repository under `Pakrohk-DotFiles`:
+Per Constitution Principle XIV (Plugin Sovereignty), every published plugin must operate completely standalone without assuming the presence of Ziro Shell or Python. To enforce true modularity, blast-radius isolation, and independent release lifecycles, ecosystem plugins will each reside in a dedicated GitHub repository under `Pakrohk`:
 
-1. **`pf` Plugin**: `github.com/Pakrohk-DotFiles/ziro-pf`
+1. **`pf` Plugin**: `github.com/Pakrohk/ziro-pf`
    - Independent cross-shell package manager (POSIX core + Zsh wrapper + fzf integration).
-2. **`ghost` Plugin**: `github.com/Pakrohk-DotFiles/ziro-ghost`
+2. **`ghost` Plugin**: `github.com/Pakrohk/ziro-ghost`
    - Standalone history autosuggestion plugin (pure Zsh, fast POSTDISPLAY, fuzzy search).
-3. **`helpers` Plugin**: `github.com/Pakrohk-DotFiles/ziro-helpers`
+3. **`helpers` Plugin**: `github.com/Pakrohk/ziro-helpers`
    - Reusable shell aliases, functions, and navigation shortcuts decoupled from personal configurations.
 
 **Rationale**:

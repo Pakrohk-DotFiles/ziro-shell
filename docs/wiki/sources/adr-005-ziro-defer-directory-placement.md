@@ -48,5 +48,5 @@ and still emits `ziro-defer`. Related: [[entities/znap-runtime]],
 
 ## Migration plan
 At v1.1.0 the `ziro-defer/` directory becomes the
-`Pakrohk-DotFiles/ziro-defer` GitHub repo, installable via
-`znap source Pakrohk-DotFiles/ziro-defer`. Consumers unaffected (API stable).
+`Pakrohk/ziro-defer` GitHub repo, installable via
+`znap source Pakrohk/ziro-defer`. Consumers unaffected (API stable).

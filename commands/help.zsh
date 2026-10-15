@@ -40,6 +40,6 @@ Commands:
   help        Show help information for ziro commands
 
 Run 'ziro help <command>' or 'ziro <command> --help' for details on a command.
-For more: https://github.com/Pakrohk-DotFiles/ziro-shell
+For more: https://github.com/Pakrohk/ziro-shell
 HELP
 }

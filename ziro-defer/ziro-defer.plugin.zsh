@@ -12,9 +12,9 @@
 #   It does NOT belong in ghost/ (that's ziro-original code).
 #   It lives in ziro-defer/ as a first-class fork directory.
 #
-#   In v1.1.0, this directory becomes the Pakrohk-DotFiles/ziro-defer
+#   In v1.1.0, this directory becomes the Pakrohk/ziro-defer
 #   repository on GitHub, installable via:
-#     znap source Pakrohk-DotFiles/ziro-defer
+#     znap source Pakrohk/ziro-defer
 #
 # Roadmap:
 #   v0.1.0 (now)   : MVP wrapper — --wait=N → -t N

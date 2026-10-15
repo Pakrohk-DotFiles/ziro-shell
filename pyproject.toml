@@ -5,7 +5,12 @@ description = "Fast, layered Zsh runtime customization"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "Pakrohk-DotFiles" }]
+authors = [{ name = "Pakrohk" }]
+
+[project.urls]
+Homepage = "https://github.com/Pakrohk/ziro-shell"
+Repository = "https://github.com/Pakrohk/ziro-shell.git"
+Issues = "https://github.com/Pakrohk/ziro-shell/issues"
 keywords = ["zsh", "shell", "plugin-manager", "znap"]
 classifiers = [
     "Development Status:: 5 - Production/Stable",

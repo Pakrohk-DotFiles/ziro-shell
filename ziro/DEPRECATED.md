@@ -52,4 +52,4 @@ See `ARCHITECTURE.md` for current layer model.
 
 ## Questions
 
-Open issue at https://github.com/Pakrohk-DotFiles/ziro-shell/issues
+Open issue at https://github.com/Pakrohk/ziro-shell/issues

@@ -50,9 +50,9 @@ the function exists because this wrapper defines it. Spec 006 §B.3 calls
 - v0.3.0: `--lazy-by-command/function`
 - v0.4.0: `--atinit` / `--atload` + auto re-registration
 - v1.0.0: full Spec 005
-- v1.1.0: **migration to `Pakrohk-DotFiles/ziro-defer` GitHub repo**.
+- v1.1.0: **migration to `Pakrohk/ziro-defer` GitHub repo**.
   Directory becomes a standalone repo installable via `znap source
-  Pakrohk-DotFiles/ziro-defer`. API stable, consumers unaffected.
+  Pakrohk/ziro-defer`. API stable, consumers unaffected.
 
 Related: [[entities/znap-runtime]], [[sources/adr-002-znap-permanent]],
 [[concepts/defer-naming-split]], [[concepts/plugin-sovereignty]]

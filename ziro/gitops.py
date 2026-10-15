@@ -13,11 +13,12 @@ from pathlib import Path
 from . import ui
 from .runner import capture, quiet, run
 
-REPO_URL = "https://github.com/Pakrohk-DotFiles/ziro-shell.git"
-REMOTE_HINT = "Pakrohk-DotFiles/ziro-shell"
+REPO_URL = "https://github.com/Pakrohk/ziro-shell.git"
+REMOTE_HINT = "Pakrohk/ziro-shell"
 # Repos installed before the rename still point at these; accepted as Ziro,
 # and healed (re-pointed) automatically on update.
 LEGACY_REMOTE_HINTS = (
+    "Pakrohk-DotFiles/ziro-shell",      # pre-transfer origin
     "Pakrohk-DotFiles/zsh_config",      # pre-rename origin
     "Pakrohk-DotFiles/ziro",            # even older name
 )
@@ -89,7 +90,7 @@ def heal_origin(path: Path) -> bool:
     if origin_kind(path) != "legacy":
         return False
     run(["git", "-C", str(path), "remote", "set-url", "origin", REPO_URL])
-    ui.configured("origin -> Pakrohk-DotFiles/ziro-shell (repo was renamed)")
+    ui.configured("origin -> Pakrohk/ziro-shell (repo was renamed)")
     return True
 
 

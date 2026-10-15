@@ -8,10 +8,18 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 
 ## Upcoming
 
-- **v1.1.2** — Ziro Ghost (standalone autosuggest plugin)
+- **v1.1.3** — Ziro Ghost (standalone autosuggest plugin)
 - **v1.1.5** — pf (cross-shell package manager) + standard helpers
 
-## [v1.1.1] — Plugin List Update
+## [v1.1.2] — Repository Transfer to Pakrohk (2026-10-16)
+
+### Changed
+- Repository namespace migrated from `Pakrohk-DotFiles` to `Pakrohk` (`https://github.com/Pakrohk/ziro-shell`)
+- Centralized repository constants in `core/constants.py` (`GITHUB_USER`, `REPO_NAME`, `REPO_URL`)
+- Updated clone URLs, installation guides, documentation, and author metadata
+- Added automatic origin healing for `Pakrohk-DotFiles/ziro-shell` in `ziro/gitops.py`
+
+## [v1.1.1] — Plugin List Update (2026-10-16)
 
 ### Added
 - Core helpers: `mkcd`, `take`, `extract`, `..` navigation, `clipcopy`/`clippaste` (`lib/helpers.zsh`)

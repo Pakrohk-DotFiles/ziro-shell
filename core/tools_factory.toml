@@ -159,7 +159,7 @@ load_order = 6
 guard = "none"
 local_path = "$ZIRO_HOME/ghost/ghost.zsh"
 conflicts_with = ["zsh-autosuggestions"]
-github = "https://github.com/Pakrohk-DotFiles/ziro-shell"
+github = "https://github.com/Pakrohk/ziro-shell"
 description = "Ziro self-maintained history autosuggestion and ZLE popup."
 
 [[tool]]
